@@ -134,11 +134,11 @@ double		_htmlSizes[8] =		/* Point size for each HTML size */
 		{ 6.0, 8.0, 9.0, 11.0, 14.0, 17.0, 20.0, 24.0 };
 double		_htmlSpacings[8] =	/* Line height for each HTML size */
 		{ 7.2, 9.6, 10.8, 13.2, 16.8, 20.4, 24.0, 28.8 };
-typeface_t	_htmlBodyFont = TYPE_TIMES,
-		_htmlHeadingFont = TYPE_HELVETICA;
+typeface_t	_htmlBodyFont = TYPE_SERIF,
+		_htmlHeadingFont = TYPE_SANS_SERIF;
 
 int		_htmlInitialized = 0;	/* Initialized glyphs yet? */
-char		_htmlCharSet[256] = "iso-8859-1";
+char		_htmlCharSet[256] = "utf-8";
 					/* Character set name */
 double		_htmlWidths[TYPE_MAX][STYLE_MAX][256];
 					/* Character widths of fonts */
@@ -205,14 +205,14 @@ const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		};
 int		_htmlStandardFonts[TYPE_MAX] =
 		{
-		  1,	// Courier
-		  1,	// Times
-		  1,	// Helvetica
+		  0,	// Courier
+		  0,	// Times
+		  0,	// Helvetica
 		  0,	// Monospace
 		  0,	// Sans
 		  0,	// Serif
-		  1,	// Symbol
-		  1	// Dingbats
+		  0,	// Symbol
+		  0	// Dingbats
 		};
 
 
@@ -2445,9 +2445,10 @@ htmlSetCharSet(const char *cs)		/* I - Character set file to load */
       progress_error(HD_ERROR_FILE_NOT_FOUND,
                      "Unable to open psglyphs data file!");
 #endif /* !DEBUG */
+    memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
   }
 
-  memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
+//  memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
 
   if (!strcmp(cs, "utf-8"))
   {

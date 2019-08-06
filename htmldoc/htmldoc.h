@@ -123,29 +123,31 @@ enum	/* PDF document permissions */
 #  define NULL3
 #endif /* _HTML_DOC_CXX_ */
 
-VAR int		Verbosity	VALUE(0);	/* Verbosity */
+VAR FILE *OUT VALUE(NULL);
+
+VAR int		Verbosity	VALUE(-1);	/* Verbosity */
 VAR int		OverflowErrors	VALUE(0);	/* Show errors on overflow */
 VAR int		StrictHTML	VALUE(0);	/* Do strict HTML checking */
 VAR int		CGIMode		VALUE(0);	/* Running as CGI? */
 VAR int		Errors		VALUE(0);	/* Number of errors */
 VAR int		Compression	VALUE(1);	/* Non-zero means compress PDFs */
-VAR int		TitlePage	VALUE(1),	/* Need a title page */
-		TocLevels	VALUE(3),	/* Number of table-of-contents levels */
-		TocLinks	VALUE(1),	/* Generate links */
+VAR int		TitlePage	VALUE(0),	/* Need a title page */
+		TocLevels	VALUE(0),	/* Number of table-of-contents levels */
+		TocLinks	VALUE(0),	/* Generate links */
 		TocNumbers	VALUE(0),	/* Generate heading numbers */
 		TocDocCount	VALUE(0);	/* Number of chapters */
-VAR int		OutputType	VALUE(OUTPUT_BOOK);
+VAR int		OutputType	VALUE(OUTPUT_WEBPAGES);
 						/* Output a "book", etc. */
 VAR char	OutputPath[1024] VALUE("");	/* Output directory/name */
 VAR int		OutputFiles	VALUE(0),	/* Generate multiple files? */
 		OutputColor	VALUE(1);	/* Output color images */
 VAR int		OutputJPEG	VALUE(0);	/* JPEG compress images? */
-VAR int		PDFVersion	VALUE(13);	/* Version of PDF to support */
-VAR int		PDFPageMode	VALUE(PDF_OUTLINE),
+VAR int		PDFVersion	VALUE(14);	/* Version of PDF to support */
+VAR int		PDFPageMode	VALUE(PDF_DOCUMENT),
 						/* PageMode attribute */
 		PDFPageLayout	VALUE(PDF_SINGLE),
 						/* PageLayout attribute */
-		PDFFirstPage	VALUE(PDF_CHAPTER_1),
+		PDFFirstPage	VALUE(PDF_PAGE_1),
 						/* First page */
 		PDFEffect	VALUE(PDF_NONE);/* Page transition effect */
 VAR double	PDFEffectDuration VALUE(1.0),	/* Page effect duration */
@@ -154,8 +156,8 @@ VAR int		Encryption	VALUE(0),	/* Encrypt the PDF file? */
 		Permissions	VALUE(-4);	/* File permissions? */
 VAR char	OwnerPassword[33] VALUE(""),	/* Owner password */
 		UserPassword[33] VALUE("");	/* User password */
-VAR int		EmbedFonts	VALUE(1);	/* Embed fonts? */
-VAR int		PSLevel		VALUE(2),	/* Language level (0 for PDF) */
+VAR int		EmbedFonts	VALUE(0);	/* Embed fonts? */
+VAR int		PSLevel		VALUE(0),	/* Language level (0 for PDF) */
 		PSCommands	VALUE(0),	/* Output PostScript commands? */
 		XRXComments	VALUE(0);	/* Output Xerox comments? */
 VAR int		PageWidth	VALUE(595),	/* Page width in points */
@@ -170,7 +172,7 @@ VAR int		PageWidth	VALUE(595),	/* Page width in points */
 		Landscape	VALUE(0),	/* Landscape orientation? */
 		NumberUp	VALUE(1);	/* Number-up pages */
 
-VAR typeface_t	HeadFootType	VALUE(TYPE_HELVETICA);
+VAR typeface_t	HeadFootType	VALUE(TYPE_SANS_SERIF);
 						/* Typeface for header & footer */
 VAR style_t	HeadFootStyle	VALUE(STYLE_NORMAL);
 						/* Type style */
@@ -243,6 +245,7 @@ VAR int		Tooltips	VALUE(0);	/* Show tooltips? */
  */
 
 extern int	pspdf_export(tree_t *document, tree_t *toc);
+extern void set_out(FILE *out);
 
 extern int	epub_export(tree_t *document, tree_t *toc);
 

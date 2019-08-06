@@ -2746,3 +2746,7 @@ usage(const char *arg)			// I - Bad argument string
 
   exit(1);
 }
+
+void set_out(FILE *out) {
+    OUT = out;
+}
