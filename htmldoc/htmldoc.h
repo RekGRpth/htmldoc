@@ -130,7 +130,7 @@ VAR int		OverflowErrors	VALUE(0);	/* Show errors on overflow */
 VAR int		StrictHTML	VALUE(0);	/* Do strict HTML checking */
 VAR int		CGIMode		VALUE(0);	/* Running as CGI? */
 VAR int		Errors		VALUE(0);	/* Number of errors */
-VAR int		Compression	VALUE(1);	/* Non-zero means compress PDFs */
+VAR int		Compression	VALUE(9);	/* Non-zero means compress PDFs */
 VAR int		TitlePage	VALUE(0),	/* Need a title page */
 		TocLevels	VALUE(0),	/* Number of table-of-contents levels */
 		TocLinks	VALUE(0),	/* Generate links */
