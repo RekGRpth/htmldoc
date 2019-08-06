@@ -47,15 +47,14 @@ HTMLDOCOBJS =	gui.o \
 		ps-pdf.o \
 		rc4.o \
 		zipc.o
-TESTOBJS =	testhtml.o
-OBJS	=	$(COMMONOBJS) $(HTMLDOCOBJS) $(TESTOBJS)
+OBJS	=	$(COMMONOBJS) $(HTMLDOCOBJS)
 
 
 #
 # Make everything...
 #
 
-all:	htmldoc$(EXEEXT) testhtml$(EXEEXT)
+all:	htmldoc$(EXEEXT) libhtmldoc.so
 
 
 #
@@ -64,7 +63,9 @@ all:	htmldoc$(EXEEXT) testhtml$(EXEEXT)
 
 install:	all
 	$(INSTALL_DIR) $(BUILDROOT)$(bindir)
+	$(INSTALL_DIR) $(BUILDROOT)$(libdir)
 	$(INSTALL_BIN) htmldoc$(EXEEXT) $(BUILDROOT)$(bindir)
+	$(INSTALL_BIN) libhtmldoc.so $(BUILDROOT)$(libdir)
 
 
 #
@@ -72,7 +73,7 @@ install:	all
 #
 
 clean:
-	$(RM) $(OBJS) htmldoc$(EXEEXT) testhtml$(EXEEXT)
+	$(RM) $(OBJS) htmldoc$(EXEEXT) libhtmldoc.so
 
 
 #
@@ -94,6 +95,10 @@ htmldoc$(EXEEXT):	$(HTMLDOCOBJS) $(COMMONOBJS) ../Makedefs
 	if test `uname` = Darwin; then \
 		$(MAKE) -$(MAKEFLAGS) htmldoc.app || exit 1; \
 	fi
+
+libhtmldoc.so:	$(HTMLDOCOBJS) $(COMMONOBJS) ../Makedefs
+	echo Linking $@...
+	$(CXX) $(LDFLAGS) -shared -Wl,-soname,$(notdir $@) -o libhtmldoc.so $(HTMLDOCOBJS) $(COMMONOBJS) $(LIBS)
 
 htmldoc.app:	htmldoc
 	echo Creating application bundle...
@@ -120,11 +125,6 @@ htmldoc.app:	htmldoc
 #
 # testhtml
 #
-
-testhtml$(EXEEXT):	$(TESTOBJS) $(COMMONOBJS)
-	echo Linking $@...
-	$(CXX) $(LDFLAGS) -o testhtml$(EXEEXT) $(TESTOBJS) $(COMMONOBJS) $(LIBS)
-
 
 #
 # Dependencies...
