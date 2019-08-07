@@ -3769,3 +3769,1306 @@ utf8_getc(int  ch,                      // I - Initial character
   return (0);
 }
 
+
+tree_t *				// O - Pointer to top of file tree
+htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
+             FILE       *fp,		// I - File pointer
+	     const char *base)		// I - Base directory for file
+{
+  int		ch;			// Character from file
+  uchar		*ptr,			// Pointer in string
+		entity[16],		// Character entity name (&#nnn; or &name;)
+		*eptr;			// Pointer in entity string
+  tree_t	*tree,			// "top" of this tree
+		*t,			// New tree entry
+		*prev,			// Previous tree entry
+		*temp;			// Temporary looping var
+  int		descend;		// Descend into node?
+  FILE		*embed;			// File pointer for EMBED
+  char		newbase[1024];		// New base directory for EMBED
+  uchar		*filename,		// Filename for EMBED tag
+		*face,			// Typeface for FONT tag
+		*color,			// Color for FONT tag
+		*size,			// Size for FONT tag
+		*type,			// Type for EMBED tag
+		*span;			// Value for SPAN tag
+  int		sizeval;		// Size value from FONT tag
+  int		linenum;		// Line number in file
+  static uchar	s[10240];		// String from file
+  static int	have_whitespace = 0;	// Non-zero if there was leading whitespace
+
+
+  fprintf(stderr, "htmlReadFile2(parent=%p, fp=%p, base=\"%s\")\n",
+                (void *)parent, (void *)fp, base ? base : "(null)");
+
+#ifdef DEBUG
+  indent[0] = '\0';
+#endif // DEBUG
+
+ /*
+  * Start off with no previous tree entry...
+  */
+
+  prev = NULL;
+  tree = NULL;
+
+ /*
+  * Parse data until we hit end-of-file...
+  */
+
+  linenum = 1;
+
+  while ((ch = getc(fp)) != EOF)
+  {
+   /*
+    * Ignore leading whitespace...
+    */
+
+    if (parent == NULL || !parent->preformatted)
+    {
+      while (isspace(ch))
+      {
+	if (ch == '\n')
+	  linenum ++;
+
+        have_whitespace = 1;
+        ch              = getc(fp);
+      }
+
+      if (ch == EOF)
+        break;
+    }
+
+   /*
+    * Allocate a new tree entry - use calloc() to get zeroed data...
+    */
+
+    t = (tree_t *)calloc(sizeof(tree_t), 1);
+    if (t == NULL)
+    {
+#ifndef DEBUG
+      progress_error(HD_ERROR_OUT_OF_MEMORY,
+                     "Unable to allocate memory for HTML tree node!");
+#endif /* !DEBUG */
+      break;
+    }
+
+   /*
+    * Set/copy font characteristics...
+    */
+
+    if (parent == NULL)
+    {
+      t->halignment   = ALIGN_LEFT;
+      t->valignment   = ALIGN_BOTTOM;
+      t->typeface     = _htmlBodyFont;
+      t->size         = SIZE_P;
+
+      compute_color(t, _htmlTextColor);
+    }
+    else
+    {
+      t->link          = parent->link;
+      t->halignment    = parent->halignment;
+      t->valignment    = parent->valignment;
+      t->typeface      = parent->typeface;
+      t->size          = parent->size;
+      t->style         = parent->style;
+      t->superscript   = parent->superscript;
+      t->subscript     = parent->subscript;
+      t->preformatted  = parent->preformatted;
+      t->indent        = parent->indent;
+      t->red           = parent->red;
+      t->green         = parent->green;
+      t->blue          = parent->blue;
+      t->underline     = parent->underline;
+      t->strikethrough = parent->strikethrough;
+    }
+
+   /*
+    * See what the character was...
+    */
+
+    if (ch == '<')
+    {
+     /*
+      * Markup char; grab the next char to see if this is a /...
+      */
+
+      ch = getc(fp);
+
+      if (isspace(ch) || ch == '=' || ch == '<')
+      {
+       /*
+        * Sigh...  "<" followed by anything but an element name is
+	* invalid HTML, but so many people have asked for this to
+	* be supported that we have added this hack...
+	*/
+
+	progress_error(HD_ERROR_HTML_ERROR, "Unquoted < on line %d of %s.",
+	               linenum, _htmlCurrentFile);
+
+	if (ch == '\n')
+	  linenum ++;
+
+	ptr = s;
+	if (have_whitespace)
+	{
+          *ptr++ = ' ';
+	  have_whitespace = 0;
+	}
+
+        *ptr++ = '<';
+	if (ch == '=')
+	  *ptr++ = '=';
+	else if (ch == '<')
+	  ungetc(ch, fp);
+	else
+	  have_whitespace = 1;
+
+	*ptr++ = '\0';
+
+	t->markup = MARKUP_NONE;
+	t->data   = (uchar *)strdup((char *)s);
+      }
+      else
+      {
+       /*
+        * Start of a markup...
+	*/
+
+	if (ch != '/')
+          ungetc(ch, fp);
+
+	if (parse_markup(t, fp, &linenum) == MARKUP_ERROR)
+	{
+#ifndef DEBUG
+          progress_error(HD_ERROR_READ_ERROR,
+                         "Unable to parse HTML element on line %d of %s!",
+			 linenum, _htmlCurrentFile);
+#endif /* !DEBUG */
+
+          delete_node(t);
+          break;
+	}
+
+       /*
+	* Eliminate extra whitespace...
+	*/
+
+	if (issuper(t->markup) || isblock(t->markup) ||
+            islist(t->markup) || islentry(t->markup) ||
+            istable(t->markup) || istentry(t->markup) ||
+	    t->markup == MARKUP_TITLE)
+          have_whitespace = 0;
+
+       /*
+	* If this is the matching close mark, or if we are starting the same
+	* markup, or if we've completed a list, we're done!
+	*/
+
+	if (ch == '/')
+	{
+	 /*
+          * Close markup; find matching markup...
+          */
+
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (temp->markup == t->markup)
+              break;
+	    else if (temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+              break;
+	    }
+	}
+	else if (t->markup == MARKUP_BODY || t->markup == MARKUP_HEAD)
+	{
+	 /*
+          * Make sure we aren't inside an existing HEAD or BODY...
+	  */
+
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (temp->markup == MARKUP_BODY || temp->markup == MARKUP_HEAD)
+              break;
+	    else if (temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+	      break;
+	    }
+	}
+	else if (t->markup == MARKUP_EMBED)
+	{
+	 /*
+          * Close any text blocks...
+	  */
+
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (isblock(temp->markup) || islentry(temp->markup))
+              break;
+	    else if (istentry(temp->markup) || islist(temp->markup) ||
+	             issuper(temp->markup) || temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+	      break;
+	    }
+	}
+	else if (issuper(t->markup))
+	{
+          for (temp = parent; temp != NULL; temp = temp->parent)
+	    if (istentry(temp->markup) || temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+              break;
+	    }
+	}
+	else if (islist(t->markup))
+	{
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (isblock(temp->markup))
+	      break;
+	    else if (islentry(temp->markup) || istentry(temp->markup) ||
+	             issuper(temp->markup) || temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+              break;
+	    }
+	}
+	else if (islentry(t->markup))
+	{
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (islentry(temp->markup))
+              break;
+	    else if (islist(temp->markup) || issuper(temp->markup) ||
+	             istentry(temp->markup) || temp->markup == MARKUP_EMBED)
+            {
+	      temp = NULL;
+	      break;
+	    }
+	}
+	else if (isblock(t->markup))
+	{
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (isblock(temp->markup))
+              break;
+	    else if (istentry(temp->markup) || islist(temp->markup) ||
+	             islentry(temp->markup) ||
+	             issuper(temp->markup) || temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+	      break;
+	    }
+	}
+	else if (t->markup == MARKUP_THEAD || t->markup == MARKUP_TBODY || t->markup == MARKUP_TFOOT)
+	{
+          for (temp = parent; temp != NULL; temp = temp->parent)
+	    if (temp->markup == MARKUP_TABLE || temp->markup == MARKUP_EMBED)
+	    {
+	      temp = NULL;
+              break;
+	    }
+	}
+	else if (istentry(t->markup))
+	{
+          for (temp = parent; temp != NULL; temp = temp->parent)
+            if (istentry(temp->markup))
+              break;
+	    else if (temp->markup == MARKUP_TABLE || istable(temp->markup) ||
+	             temp->markup == MARKUP_EMBED)
+	    {
+	      if (temp->markup != MARKUP_TR)
+	      {
+	        // Strictly speaking, this is an error - TD/TH can only
+		// be found under TR, but web browsers automatically
+		// inject a TR...
+		progress_error(HD_ERROR_HTML_ERROR,
+		               "No TR element before %s element on line %d of %s.",
+			       _htmlMarkups[t->markup], linenum,
+			       _htmlCurrentFile);
+
+                parent = htmlAddTree(temp, MARKUP_TR, NULL);
+		prev   = NULL;
+		DEBUG_printf(("%str (inserted) under %s, line %d\n", indent,
+		              _htmlMarkups[temp->markup], linenum));
+	      }
+
+	      temp = NULL;
+              break;
+	    }
+	}
+	else
+          temp = NULL;
+
+	if (temp != NULL)
+	{
+          DEBUG_printf(("%s>>>> Auto-ascend <<<\n", indent));
+
+          if (ch != '/' &&
+	      temp->markup != MARKUP_BODY &&
+	      temp->markup != MARKUP_DD &&
+	      temp->markup != MARKUP_DT &&
+	      temp->markup != MARKUP_HEAD &&
+	      temp->markup != MARKUP_HTML &&
+	      temp->markup != MARKUP_LI &&
+	      temp->markup != MARKUP_OPTION &&
+	      temp->markup != MARKUP_P &&
+	      temp->markup != MARKUP_TBODY &&
+	      temp->markup != MARKUP_TD &&
+	      temp->markup != MARKUP_TFOOT &&
+	      temp->markup != MARKUP_TH &&
+	      temp->markup != MARKUP_THEAD &&
+	      temp->markup != MARKUP_TR)
+	  {
+	    // Log this condition as an error...
+	    progress_error(HD_ERROR_HTML_ERROR,
+	                   "No /%s element before %s element on line %d of %s.",
+	                   _htmlMarkups[temp->markup],
+			   _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
+	    DEBUG_printf(("%sNo /%s element before %s element on line %d.\n",
+	                  indent, _htmlMarkups[temp->markup],
+			  _htmlMarkups[t->markup], linenum));
+	  }
+
+#ifdef DEBUG
+          for (tree_t *p = parent;
+	       p && p != temp && indent[0];
+	       p = p->parent)
+	    indent[strlen((char *)indent) - 4] = '\0';
+
+          if (indent[0])
+            indent[strlen((char *)indent) - 4] = '\0';
+#endif // DEBUG
+
+          // Safety check; should never happen, since MARKUP_FILE is
+	  // the root node created by the caller...
+          if (temp->parent)
+	  {
+	    parent = temp->parent;
+            prev   = parent->last_child;
+	  }
+	  else
+	  {
+	    for (prev = temp; prev->next; prev = prev->next);
+	    parent = NULL;
+	  }
+
+          if (ch == '/')
+	  {
+	    // Closing element, so delete this node...
+            delete_node(t);
+	    continue;
+	  }
+	  else
+	  {
+	    // Reparent the node...
+	    if (parent == NULL)
+	    {
+	      t->halignment   = ALIGN_LEFT;
+	      t->valignment   = ALIGN_BOTTOM;
+	      t->typeface     = _htmlBodyFont;
+	      t->size         = SIZE_P;
+
+	      compute_color(t, _htmlTextColor);
+	    }
+	    else
+	    {
+	      t->link          = parent->link;
+	      t->halignment    = parent->halignment;
+	      t->valignment    = parent->valignment;
+	      t->typeface      = parent->typeface;
+	      t->size          = parent->size;
+	      t->style         = parent->style;
+	      t->superscript   = parent->superscript;
+	      t->subscript     = parent->subscript;
+	      t->preformatted  = parent->preformatted;
+	      t->indent        = parent->indent;
+	      t->red           = parent->red;
+	      t->green         = parent->green;
+	      t->blue          = parent->blue;
+	      t->underline     = parent->underline;
+	      t->strikethrough = parent->strikethrough;
+	    }
+
+          }
+	}
+	else if (ch == '/')
+	{
+	  // Log this condition as an error...
+	  if (t->markup != MARKUP_UNKNOWN &&
+	      t->markup != MARKUP_COMMENT)
+	  {
+	    progress_error(HD_ERROR_HTML_ERROR,
+	                   "Dangling /%s element on line %d of %s.",
+			   _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
+	    DEBUG_printf(("%sDangling /%s element on line %d.\n",
+			  indent, _htmlMarkups[t->markup], linenum));
+          }
+
+	  delete_node(t);
+	  continue;
+	}
+      }
+    }
+    else if (t->preformatted)
+    {
+     /*
+      * Read a pre-formatted string into the current tree entry...
+      */
+
+      ptr = s;
+      while (ch != '<' && ch != EOF && ptr < (s + sizeof(s) - 1))
+      {
+        if (ch == '&')
+        {
+	  // Possibly a character entity...
+	  eptr = entity;
+	  while (eptr < (entity + sizeof(entity) - 1) &&
+	         (ch = getc(fp)) != EOF)
+	    if (!isalnum(ch) && ch != '#')
+	      break;
+	    else
+	      *eptr++ = (uchar)ch;
+
+          if (ch != ';')
+	  {
+	    ungetc(ch, fp);
+	    ch = 0;
+	  }
+
+          *eptr = '\0';
+          if (!ch)
+	  {
+	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
+	                   linenum, _htmlCurrentFile);
+
+            if (ptr < (s + sizeof(s) - 1))
+	      *ptr++ = '&';
+            strlcpy((char *)ptr, (char *)entity, sizeof(s) - (size_t)(ptr - s));
+	    ptr += strlen((char *)ptr);
+	  }
+	  else if ((ch = iso8859(entity)) == 0)
+	  {
+	    progress_error(HD_ERROR_HTML_ERROR,
+	                   "Unknown character entity \"&%s;\" on line %d of %s.",
+	                   entity, linenum, _htmlCurrentFile);
+
+            if (ptr < (s + sizeof(s) - 1))
+	      *ptr++ = '&';
+            strlcpy((char *)ptr, (char *)entity, sizeof(s) - (size_t)(ptr - s));
+	    ptr += strlen((char *)ptr);
+            if (ptr < (s + sizeof(s) - 1))
+	      *ptr++ = ';';
+	  }
+	  else
+	    *ptr++ = (uchar)ch;
+        }
+        else if ((ch & 0x80) && _htmlUTF8)
+        {
+          // Collect UTF-8 value...
+          ch = utf8_getc(ch, fp);
+
+          if (ch)
+            *ptr++ = (uchar)ch;
+        }
+	else if (ch != 0 && ch != '\r')
+	{
+          *ptr++ = (uchar)ch;
+
+          if (ch == '\n')
+	  {
+	    linenum ++;
+            break;
+	  }
+	}
+
+        ch = getc(fp);
+      }
+
+      *ptr = '\0';
+
+      if (ch == '<')
+        ungetc(ch, fp);
+
+      t->markup = MARKUP_NONE;
+      t->data   = (uchar *)strdup((char *)s);
+
+      DEBUG_printf(("%sfragment \"%s\", line %d\n", indent, s, linenum));
+    }
+    else
+    {
+     /*
+      * Read the next string fragment...
+      */
+
+      ptr = s;
+      if (have_whitespace)
+      {
+        *ptr++ = ' ';
+	have_whitespace = 0;
+      }
+
+      while (!isspace(ch) && ch != '<' && ch != EOF && ptr < (s + sizeof(s) - 1))
+      {
+        if (ch == '&')
+        {
+	  // Possibly a character entity...
+	  eptr = entity;
+	  while (eptr < (entity + sizeof(entity) - 1) &&
+	         (ch = getc(fp)) != EOF)
+	    if (!isalnum(ch) && ch != '#')
+	      break;
+	    else
+	      *eptr++ = (uchar)ch;
+
+          *eptr = '\0';
+
+          if (ch != ';')
+	  {
+	    ungetc(ch, fp);
+	    ch = 0;
+	  }
+
+          if (!ch)
+	  {
+	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
+	                   linenum, _htmlCurrentFile);
+
+            if (ptr < (s + sizeof(s) - 1))
+	      *ptr++ = '&';
+            strlcpy((char *)ptr, (char *)entity, sizeof(s) - (size_t)(ptr - s));
+	    ptr += strlen((char *)ptr);
+	  }
+	  else if ((ch = iso8859(entity)) == 0)
+	  {
+	    progress_error(HD_ERROR_HTML_ERROR,
+	                   "Unknown character entity \"&%s;\" on line %d of %s.",
+	                   entity, linenum, _htmlCurrentFile);
+
+            if (ptr < (s + sizeof(s) - 1))
+	      *ptr++ = '&';
+            strlcpy((char *)ptr, (char *)entity, sizeof(s) - (size_t)(ptr - s));
+	    ptr += strlen((char *)ptr);
+            if (ptr < (s + sizeof(s) - 1))
+	      *ptr++ = ';';
+	  }
+	  else
+	    *ptr++ = (uchar)ch;
+        }
+        else
+        {
+          if ((ch & 0x80) && _htmlUTF8)
+          {
+            // Collect UTF-8 value...
+            ch = utf8_getc(ch, fp);
+          }
+
+          if (ch)
+            *ptr++ = (uchar)ch;
+        }
+
+        ch = getc(fp);
+      }
+
+      if (ch == '\n')
+	linenum ++;
+
+      if (isspace(ch))
+        have_whitespace = 1;
+
+      *ptr = '\0';
+
+      if (ch == '<')
+        ungetc(ch, fp);
+
+      t->markup = MARKUP_NONE;
+      t->data   = (uchar *)strdup((char *)s);
+
+      DEBUG_printf(("%sfragment \"%s\" (len=%d), line %d\n", indent, s,
+                    (int)(ptr - s), linenum));
+    }
+
+   /*
+    * If the parent tree pointer is not null and this is the first
+    * entry we've read, set the child pointer...
+    */
+
+    DEBUG_printf(("%sADDING %s node to %s parent!\n", indent,
+                  _htmlMarkups[t->markup],
+		  parent ? _htmlMarkups[parent->markup] : "ROOT"));
+    if (parent != NULL && prev == NULL)
+      parent->child = t;
+
+    if (parent != NULL)
+      parent->last_child = t;
+
+   /*
+    * Do the prev/next links...
+    */
+
+    t->parent = parent;
+    t->prev   = prev;
+    if (prev != NULL)
+      prev->next = t;
+
+    if (tree == NULL)
+      tree = t;
+
+    prev = t;
+
+   /*
+    * Do markup-specific stuff...
+    */
+
+    descend = 0;
+
+    switch (t->markup)
+    {
+      case MARKUP_BODY :
+         /*
+	  * Update the text color as necessary...
+	  */
+
+          if ((color = htmlGetVariable(t, (uchar *)"TEXT")) != NULL)
+            compute_color(t, color);
+	  else
+            compute_color(t, _htmlTextColor);
+
+          if ((color = htmlGetVariable(t, (uchar *)"BGCOLOR")) != NULL &&
+	      !BodyColor[0])
+	    strlcpy(BodyColor, (char *)color, sizeof(BodyColor));
+
+          // Update the background image as necessary...
+          if ((filename = htmlGetVariable(t, (uchar *)"BACKGROUND")) != NULL)
+	    htmlSetVariable(t, (uchar *)"BACKGROUND",
+	                    (uchar *)fix_filename((char *)filename,
+			                          (char *)base));
+
+          descend = 1;
+          break;
+
+      case MARKUP_IMG :
+          if (have_whitespace)
+	  {
+	    // Insert a space before this image...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          // Get the image alignment...
+          t->valignment = ALIGN_BOTTOM;
+          get_alignment(t);
+
+          // Update the image source as necessary...
+          if ((filename = htmlGetVariable(t, (uchar *)"SRC")) != NULL)
+	    htmlSetVariable(t, (uchar *)"REALSRC",
+	                    (uchar *)fix_filename((char *)filename,
+			                          (char *)base));
+
+      case MARKUP_BR :
+      case MARKUP_NONE :
+      case MARKUP_SPACER :
+	 /*
+	  * Figure out the width & height of this markup...
+	  */
+
+          compute_size(t);
+	  break;
+
+      case MARKUP_H1 :
+      case MARKUP_H2 :
+      case MARKUP_H3 :
+      case MARKUP_H4 :
+      case MARKUP_H5 :
+      case MARKUP_H6 :
+      case MARKUP_H7 :
+      case MARKUP_H8 :
+      case MARKUP_H9 :
+      case MARKUP_H10 :
+      case MARKUP_H11 :
+      case MARKUP_H12 :
+      case MARKUP_H13 :
+      case MARKUP_H14 :
+      case MARKUP_H15 :
+          get_alignment(t);
+
+          t->typeface      = _htmlHeadingFont;
+          t->subscript     = 0;
+          t->superscript   = 0;
+          t->strikethrough = 0;
+          t->preformatted  = 0;
+
+	  if (t->markup > MARKUP_H6)
+          {
+	    t->size  = SIZE_H7;
+            t->style = STYLE_ITALIC;
+	  }
+	  else
+	  {
+            t->size  = (unsigned)(SIZE_H1 - t->markup + MARKUP_H1);
+            t->style = STYLE_BOLD;
+	  }
+
+          descend = 1;
+          break;
+
+      case MARKUP_P :
+          get_alignment(t);
+
+          t->typeface      = _htmlBodyFont;
+          t->size          = SIZE_P;
+          t->style         = STYLE_NORMAL;
+          t->subscript     = 0;
+          t->superscript   = 0;
+          t->strikethrough = 0;
+          t->preformatted  = 0;
+
+          descend = 1;
+          break;
+
+      case MARKUP_PRE :
+          t->typeface      = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_MONOSPACE
+	                                                     : TYPE_COURIER;
+          t->size          = SIZE_PRE;
+          t->style         = STYLE_NORMAL;
+          t->subscript     = 0;
+          t->superscript   = 0;
+          t->strikethrough = 0;
+          t->preformatted  = 1;
+
+          descend = 1;
+          break;
+
+      case MARKUP_BLOCKQUOTE :
+      case MARKUP_DIR :
+      case MARKUP_MENU :
+      case MARKUP_UL :
+      case MARKUP_OL :
+      case MARKUP_DL :
+          t->indent ++;
+
+          descend = 1;
+          break;
+
+      case MARKUP_DIV :
+          get_alignment(t);
+
+          descend = 1;
+          break;
+
+      case MARKUP_HR :
+          t->halignment = ALIGN_CENTER;
+          get_alignment(t);
+          break;
+
+      case MARKUP_DOCTYPE :
+      case MARKUP_AREA :
+      case MARKUP_COMMENT :
+      case MARKUP_INPUT :
+      case MARKUP_ISINDEX :
+      case MARKUP_LINK :
+      case MARKUP_META :
+      case MARKUP_WBR :
+      case MARKUP_COL :
+          break;
+
+      case MARKUP_EMBED :
+          if ((type = htmlGetVariable(t, (uchar *)"TYPE")) != NULL &&
+	      strncasecmp((const char *)type, "text/html", 9) != 0)
+	    break;
+
+          if ((filename = htmlGetVariable(t, (uchar *)"SRC")) != NULL)
+	  {
+	    const char *save_name = _htmlCurrentFile;
+
+	    filename = (uchar *)fix_filename((char *)filename,
+	                                     (char *)base);
+
+            if ((embed = fopen((char *)filename, "r")) != NULL)
+            {
+	      strlcpy(newbase, file_directory((char *)filename), sizeof(newbase));
+
+              _htmlCurrentFile = (char *)filename;
+              htmlReadFile2(t, embed, newbase);
+              fclose(embed);
+	      _htmlCurrentFile = save_name;
+            }
+#ifndef DEBUG
+	    else
+	      progress_error(HD_ERROR_FILE_NOT_FOUND,
+                             "Unable to embed \"%s\" - %s", filename,
+	                     strerror(errno));
+#endif /* !DEBUG */
+	  }
+          break;
+
+      case MARKUP_TH :
+          if (htmlGetVariable(t->parent, (uchar *)"ALIGN") != NULL)
+	    t->halignment = t->parent->halignment;
+	  else
+            t->halignment = ALIGN_CENTER;
+
+          if (htmlGetVariable(t->parent, (uchar *)"VALIGN") != NULL)
+	    t->valignment = t->parent->valignment;
+	  else
+            t->valignment = ALIGN_MIDDLE;
+
+          get_alignment(t);
+
+          t->style = STYLE_BOLD;
+
+          descend = 1;
+          break;
+
+      case MARKUP_TD :
+          if (htmlGetVariable(t->parent, (uchar *)"ALIGN") != NULL)
+	    t->halignment = t->parent->halignment;
+	  else
+            t->halignment = ALIGN_LEFT;
+
+          if (htmlGetVariable(t->parent, (uchar *)"VALIGN") != NULL)
+	    t->valignment = t->parent->valignment;
+	  else
+            t->valignment = ALIGN_MIDDLE;
+
+	  get_alignment(t);
+
+          t->style = STYLE_NORMAL;
+
+          descend = 1;
+          break;
+
+      case MARKUP_SPAN :
+          // Pull style data, if present...
+          if (have_whitespace)
+	  {
+	    // Insert a space before this element...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          get_alignment(t);
+
+          if ((color = htmlGetStyle(t, (uchar *)"color:")) != NULL)
+            compute_color(t, color);
+
+          if ((face = htmlGetStyle(t, (uchar *)"font-family:")) != NULL)
+          {
+	    char	font[255],	// Font name
+			*fontptr;	// Pointer into font name
+
+            for (ptr = face; *ptr;)
+	    {
+	      while (isspace(*ptr) || *ptr == ',')
+	        ptr ++;
+
+              if (!*ptr)
+	        break;
+
+	      for (fontptr = font; *ptr && *ptr != ',' && !isspace(*ptr); ptr ++)
+	        if (fontptr < (font + sizeof(font) - 1))
+		  *fontptr++ = (char)*ptr;
+
+              *fontptr = '\0';
+
+              if (!strcasecmp(font, "serif"))
+	      {
+        	t->typeface = TYPE_SERIF;
+		break;
+	      }
+              else if (!strcasecmp(font, "sans-serif") ||
+	               !strcasecmp(font, "sans"))
+	      {
+        	t->typeface = TYPE_SANS_SERIF;
+		break;
+	      }
+              else if (!strcasecmp(font, "monospace"))
+	      {
+        	t->typeface = TYPE_MONOSPACE;
+		break;
+	      }
+              else if (!strcasecmp(font, "arial") ||
+	               !strcasecmp(font, "helvetica"))
+              {
+        	t->typeface = TYPE_HELVETICA;
+		break;
+	      }
+              else if (!strcasecmp(font, "times"))
+	      {
+        	t->typeface = TYPE_TIMES;
+		break;
+	      }
+              else if (!strcasecmp(font, "courier"))
+	      {
+        	t->typeface = TYPE_COURIER;
+		break;
+	      }
+	      else if (!strcasecmp(font, "symbol"))
+	      {
+        	t->typeface = TYPE_SYMBOL;
+		break;
+	      }
+	      else if (!strcasecmp(font, "dingbat"))
+	      {
+        	t->typeface = TYPE_DINGBATS;
+		break;
+	      }
+	    }
+          }
+
+          if ((size = htmlGetStyle(t, (uchar *)"font-size:")) != NULL)
+          {
+            // Find the closest size to the fixed sizes...
+            unsigned i;
+            double fontsize = atof((char *)size);
+
+            for (i = 0; i < 7; i ++)
+              if (fontsize <= _htmlSizes[i])
+                break;
+
+	    t->size = i;
+          }
+
+          if ((span = htmlGetStyle(t, (uchar *)"font-style:")) != NULL)
+          {
+            if (!strcmp((char *)span, "normal"))
+              t->style &= ~STYLE_ITALIC;
+            else if (!strcmp((char *)span, "italic") || !strcmp((char *)span, "oblique"))
+              t->style |= STYLE_ITALIC;
+          }
+
+          if ((span = htmlGetStyle(t, (uchar *)"font-weight:")) != NULL)
+          {
+            if (!strcmp((char *)span, "bold") || !strcmp((char *)span, "bolder") || !strcmp((char *)span, "700") || !strcmp((char *)span, "800") || !strcmp((char *)span, "900"))
+              t->style |= STYLE_BOLD;
+            else if (strcmp((char *)span, "inherit"))
+              t->style &= ~STYLE_BOLD;
+          }
+
+          if ((span = htmlGetStyle(t, (uchar *)"text-decoration:")) != NULL)
+          {
+            if (!strcmp((char *)span, "underline"))
+              t->underline = 1;
+            else if (!strcmp((char *)span, "line-through"))
+              t->strikethrough = 1;
+            else if (strcmp((char *)span, "inherit"))
+              t->underline = t->strikethrough = 0;
+          }
+
+          if ((span = htmlGetStyle(t, (uchar *)"vertical-align:")) != NULL)
+          {
+            if (!strcmp((char *)span, "sub"))
+              t->subscript = 1;
+            else if (!strcmp((char *)span, "super"))
+              t->superscript = 1;
+            else if (strcmp((char *)span, "inherit"))
+              t->subscript = t->superscript = 0;
+          }
+
+          descend = 1;
+          break;
+
+      case MARKUP_FONT :
+          if (have_whitespace)
+	  {
+	    // Insert a space before this element...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          if ((face = htmlGetVariable(t, (uchar *)"FACE")) != NULL)
+          {
+	    char	font[255],	// Font name
+			*fontptr;	// Pointer into font name
+
+
+            for (ptr = face; *ptr;)
+	    {
+	      while (isspace(*ptr) || *ptr == ',')
+	        ptr ++;
+
+              if (!*ptr)
+	        break;
+
+	      for (fontptr = font; *ptr && *ptr != ',' && !isspace(*ptr); ptr ++)
+	        if (fontptr < (font + sizeof(font) - 1))
+		  *fontptr++ = (char)*ptr;
+
+              *fontptr = '\0';
+
+              if (!strcasecmp(font, "serif"))
+	      {
+        	t->typeface = TYPE_SERIF;
+		break;
+	      }
+              else if (!strcasecmp(font, "sans-serif") ||
+	               !strcasecmp(font, "sans"))
+	      {
+        	t->typeface = TYPE_SANS_SERIF;
+		break;
+	      }
+              else if (!strcasecmp(font, "mono"))
+	      {
+        	t->typeface = TYPE_MONOSPACE;
+		break;
+	      }
+              else if (!strcasecmp(font, "arial") ||
+	               !strcasecmp(font, "helvetica"))
+              {
+        	t->typeface = TYPE_HELVETICA;
+		break;
+	      }
+              else if (!strcasecmp(font, "times"))
+	      {
+        	t->typeface = TYPE_TIMES;
+		break;
+	      }
+              else if (!strcasecmp(font, "courier"))
+	      {
+        	t->typeface = TYPE_COURIER;
+		break;
+	      }
+	      else if (!strcasecmp(font, "symbol"))
+	      {
+        	t->typeface = TYPE_SYMBOL;
+		break;
+	      }
+	      else if (!strcasecmp(font, "dingbat"))
+	      {
+        	t->typeface = TYPE_DINGBATS;
+		break;
+	      }
+	    }
+          }
+
+          if ((color = htmlGetVariable(t, (uchar *)"COLOR")) != NULL)
+            compute_color(t, color);
+
+          if ((size = htmlGetVariable(t, (uchar *)"SIZE")) != NULL)
+          {
+            if (have_whitespace)
+	    {
+	      // Insert a space before sized text...
+	      insert_space(parent, t);
+
+	      have_whitespace = 0;
+	    }
+
+	    if (isdigit(size[0]))
+	      sizeval = atoi((char *)size);
+	    else
+              sizeval = t->size + atoi((char *)size);
+
+            if (sizeval < 0)
+              t->size = 0;
+            else if (sizeval > 7)
+              t->size = 7;
+            else
+              t->size = (unsigned)sizeval;
+          }
+
+          descend = 1;
+          break;
+
+      case MARKUP_BIG :
+          if (have_whitespace)
+	  {
+	    // Insert a space before big text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          if (t->size < 6)
+            t->size += 2;
+          else
+            t->size = 7;
+
+          descend = 1;
+          break;
+
+      case MARKUP_SMALL :
+          if (have_whitespace)
+	  {
+	    // Insert a space before small text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          if (t->size > 2)
+            t->size -= 2;
+          else
+            t->size = 0;
+
+          descend = 1;
+          break;
+
+      case MARKUP_SUP :
+          if (have_whitespace)
+	  {
+	    // Insert a space before superscript text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          t->superscript = 1;
+
+          if ((sizeval = t->size + SIZE_SUP) < 0)
+	    t->size = 0;
+	  else
+	    t->size = (unsigned)sizeval;
+
+          descend = 1;
+          break;
+
+      case MARKUP_SUB :
+          if (have_whitespace)
+	  {
+	    // Insert a space before subscript text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          t->subscript = 1;
+
+          if ((sizeval = t->size + SIZE_SUB) < 0)
+	    t->size = 0;
+	  else
+	    t->size = (unsigned)sizeval;
+
+          descend = 1;
+          break;
+
+      case MARKUP_KBD :
+          t->style    = STYLE_BOLD;
+
+      case MARKUP_TT :
+      case MARKUP_CODE :
+      case MARKUP_SAMP :
+          if (isspace(ch = getc(fp)))
+	    have_whitespace = 1;
+	  else
+	    ungetc(ch, fp);
+
+          if (have_whitespace)
+	  {
+	    // Insert a space before monospaced text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          t->typeface = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_MONOSPACE
+	                                                : TYPE_COURIER;
+
+          descend = 1;
+          break;
+
+      case MARKUP_STRONG :
+      case MARKUP_B :
+          t->style = (style_t)(t->style | STYLE_BOLD);
+
+          descend = 1;
+          break;
+
+      case MARKUP_DD :
+          t->indent ++;
+
+          descend = 1;
+          break;
+
+      case MARKUP_VAR :
+          t->style = (style_t)(t->style | STYLE_ITALIC);
+      case MARKUP_DFN :
+          t->typeface = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_SANS_SERIF
+	                                                : TYPE_HELVETICA;
+
+          descend = 1;
+          break;
+
+      case MARKUP_CITE :
+      case MARKUP_EM :
+      case MARKUP_I :
+          t->style = (style_t)(t->style | STYLE_ITALIC);
+
+          descend = 1;
+          break;
+
+      case MARKUP_U :
+      case MARKUP_INS :
+          if (have_whitespace)
+	  {
+	    // Insert a space before underlined text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          t->underline = 1;
+
+          descend = 1;
+          break;
+
+      case MARKUP_STRIKE :
+      case MARKUP_S :
+      case MARKUP_DEL :
+          if (have_whitespace)
+	  {
+	    // Insert a space before struck-through text...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          t->strikethrough = 1;
+
+          descend = 1;
+          break;
+
+      case MARKUP_CENTER :
+          t->halignment = ALIGN_CENTER;
+
+          descend = 1;
+          break;
+
+      case MARKUP_A :
+          if (have_whitespace)
+	  {
+	    // Insert a space before this link...
+	    insert_space(parent, t);
+
+	    have_whitespace = 0;
+	  }
+
+          descend = 1;
+	  break;
+
+      default :
+         /*
+          * All other markup types should be using <MARK>...</MARK>
+          */
+
+          get_alignment(t);
+
+          descend = 1;
+          break;
+    }
+
+    if (descend)
+    {
+#ifdef DEBUG
+      strlcat((char *)indent, "    ", sizeof(indent));
+#endif // DEBUG
+
+      parent = t;
+      prev   = NULL;
+    }
+  }
+
+  return (tree);
+}
