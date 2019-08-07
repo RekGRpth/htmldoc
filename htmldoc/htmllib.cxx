@@ -266,8 +266,8 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
              FILE       *fp,		// I - File pointer
 	     const char *base)		// I - Base directory for file
 {
-  fprintf(stderr, "htmlReadFile(parent=%p, fp=%p, base=\"%s\")\n",
-                (void *)parent, (void *)fp, base ? base : "(null)");
+  DEBUG_printf(("htmlReadFile(parent=%p, fp=%p, base=\"%s\")\n",
+                (void *)parent, (void *)fp, base ? base : "(null)"));
   return htmlReadFile2(parent, fp, base);
 }
 
@@ -299,8 +299,8 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
   static int	have_whitespace = 0;	// Non-zero if there was leading whitespace
 
 
-  fprintf(stderr, "htmlReadFile2(parent=%p, fp=%p, base=\"%s\")\n",
-                (void *)parent, (void *)fp, base ? base : "(null)");
+  DEBUG_printf(("htmlReadFile2(parent=%p, fp=%p, base=\"%s\")\n",
+                (void *)parent, (void *)fp, base ? base : "(null)"));
 
 #ifdef DEBUG
   indent[0] = '\0';
