@@ -2455,10 +2455,8 @@ htmlSetCharSet(const char *cs)		/* I - Character set file to load */
       progress_error(HD_ERROR_FILE_NOT_FOUND,
                      "Unable to open psglyphs data file!");
 #endif /* !DEBUG */
-    memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
-  }
 
-//  memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
+  memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
 
   if (!strcmp(cs, "utf-8"))
   {
@@ -2536,6 +2534,7 @@ htmlSetCharSet(const char *cs)		/* I - Character set file to load */
   }
 
   htmlLoadFontWidths();
+  }
 }
 
 
