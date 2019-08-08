@@ -12276,7 +12276,8 @@ write_type1(FILE       *out,		/* I - File to write to */
 		  33,			/* Monospace */
 		  34,			/* Serif */
 		  32,			/* Sans */
-		  4			/* Symbol */
+		  4,			/* Symbol */
+		  4			/* Dingbats */
 		};
   static int	sflags[] =		/* PDF style flags */
 		{

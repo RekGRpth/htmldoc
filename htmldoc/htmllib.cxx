@@ -177,6 +177,12 @@ const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		    "Symbol",
 		    "Symbol",
 		    "Symbol"
+		  },
+		  {
+		    "Dingbats",
+		    "Dingbats",
+		    "Dingbats",
+		    "Dingbats"
 		  }
 		};
 int		_htmlStandardFonts[TYPE_MAX] =
@@ -184,7 +190,8 @@ int		_htmlStandardFonts[TYPE_MAX] =
 		  0,	// Monospace
 		  0,	// Sans
 		  0,	// Serif
-		  0	// Symbol
+		  0,	// Symbol
+		  0	// Dingbats
 		};
 
 
@@ -1181,6 +1188,11 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
         	t->typeface = TYPE_SYMBOL;
 		break;
 	      }
+	      else if (!strcasecmp(font, "dingbat"))
+	      {
+        	t->typeface = TYPE_DINGBATS;
+		break;
+	      }
 	    }
           }
 
@@ -1300,6 +1312,11 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	      else if (!strcasecmp(font, "symbol"))
 	      {
         	t->typeface = TYPE_SYMBOL;
+		break;
+	      }
+	      else if (!strcasecmp(font, "dingbat"))
+	      {
+        	t->typeface = TYPE_DINGBATS;
 		break;
 	      }
 	    }

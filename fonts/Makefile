@@ -20,6 +20,7 @@ include ../Makedefs
 #
 
 FONTS	=	\
+		Dingbats \
 		Monospace \
 		Monospace-Bold \
 		Monospace-BoldOblique \

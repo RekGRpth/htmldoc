@@ -225,7 +225,8 @@ write_header(FILE   **out,	/* IO - Output file */
 		  "monospace",
 		  "serif",
 		  "sans-serif",
-		  "symbol"
+		  "symbol",
+		  "dingbats"
 		};
 
 
