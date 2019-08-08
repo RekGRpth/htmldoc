@@ -2399,7 +2399,7 @@ pdf_write_resources(FILE *out,		/* I - Output file */
 
 
   memset(fonts_used, 0, sizeof(fonts_used));
-  fonts_used[HeadFootType * 4 + HeadFootStyle] = 1;
+//  fonts_used[HeadFootType * 4 + HeadFootStyle] = 1;
   images_used = background_image != NULL;
   text_used   = 0;
 
@@ -11184,7 +11184,7 @@ write_prolog(FILE  *out,		/* I - Output file */
   */
 
   memset(fonts_used, 0, sizeof(fonts_used));
-  fonts_used[HeadFootType][HeadFootStyle] = 1;
+//  fonts_used[HeadFootType][HeadFootStyle] = 1;
 
   for (page = 0; page < (int)num_pages; page ++)
     for (r = pages[page].start; r != NULL; r = r->next)
