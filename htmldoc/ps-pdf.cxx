@@ -7166,9 +7166,17 @@ parse_list(tree_t *t,		/* I - Tree to parse */
         typeface = t->typeface;
         break;
 
-    default :
+    case 0327 :
+    case 0267 :
+    case 0250 :
+    case 0340 :
         snprintf((char *)number, sizeof(number), "%c ", list_types[t->indent]);
         typeface = TYPE_SYMBOL;
+        break;
+
+    default :
+        snprintf((char *)number, sizeof(number), "%c ", list_types[t->indent]);
+        typeface = t->typeface;
         break;
   }
 
