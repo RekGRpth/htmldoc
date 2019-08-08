@@ -123,8 +123,6 @@ enum	/* PDF document permissions */
 #  define NULL3
 #endif /* _HTML_DOC_CXX_ */
 
-VAR FILE *OUT VALUE(NULL);
-
 VAR int		Verbosity	VALUE(-1);	/* Verbosity */
 VAR int		OverflowErrors	VALUE(0);	/* Show errors on overflow */
 VAR int		StrictHTML	VALUE(0);	/* Do strict HTML checking */
@@ -245,7 +243,7 @@ VAR int		Tooltips	VALUE(0);	/* Show tooltips? */
  */
 
 extern int	pspdf_export(tree_t *document, tree_t *toc);
-extern void set_out(FILE *out);
+extern int	pspdf_export_out(tree_t *document, tree_t *toc, FILE *out);
 
 extern int	epub_export(tree_t *document, tree_t *toc);
 

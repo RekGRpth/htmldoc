@@ -256,13 +256,13 @@ static void	pspdf_prepare_heading(int page, int print_page, uchar **format,
 		                      int y, char *page_text, int page_len);
 static void	ps_write_document(uchar *author, uchar *creator,
 		                  uchar *copyright, uchar *keywords,
-				  uchar *subject, uchar *lang);
+				  uchar *subject, uchar *lang, FILE *out);
 static void	ps_write_outpage(FILE *out, int outpage);
 static void	ps_write_page(FILE *out, int page);
 static void	ps_write_background(FILE *out);
 static void	pdf_write_document(uchar *author, uchar *creator,
 		                   uchar *copyright, uchar *keywords,
-				   uchar *subject, uchar *lang, tree_t *doc, tree_t *toc);
+				   uchar *subject, uchar *lang, tree_t *doc, tree_t *toc, FILE *out);
 static void	pdf_write_outpage(FILE *out, int outpage);
 static void	pdf_write_page(FILE *out, int page);
 static void	pdf_write_resources(FILE *out, int page);
@@ -335,7 +335,7 @@ static tree_t	*flatten_tree(tree_t *t);
 static float	get_width(uchar *s, int typeface, int style, int size);
 static void	update_image_size(tree_t *t);
 static uchar	*get_title(tree_t *doc);
-static FILE	*open_file(void);
+static FILE	*open_file(FILE *fp);
 static void	set_color(FILE *out, float *rgb);
 static void	set_font(FILE *out, int typeface, int style, float size);
 static void	set_pos(FILE *out, float x, float y);
@@ -368,6 +368,13 @@ static void	write_utf16(FILE *out, uchar *s);
 int
 pspdf_export(tree_t *document,	/* I - Document to export */
              tree_t *toc)	/* I - Table of contents for document */
+{
+    return pspdf_export_out(document, toc, NULL);
+}
+
+int
+pspdf_export_out(tree_t *document,	/* I - Document to export */
+             tree_t *toc, FILE *out)	/* I - Table of contents for document */
 {
   int		i, j;		/* Looping vars */
   const char	*title_file;	/* Location of title image/file */
@@ -875,10 +882,10 @@ pspdf_export(tree_t *document,	/* I - Document to export */
     progress_error(HD_ERROR_NONE, "PAGES: %d", num_outpages);
 
     if (PSLevel > 0)
-      ps_write_document(author, creator, copyright, keywords, subject, lang);
+      ps_write_document(author, creator, copyright, keywords, subject, lang, out);
     else
       pdf_write_document(author, creator, copyright, keywords, subject, lang,
-                         document, toc);
+                         document, toc, out);
   }
   else
   {
@@ -1757,9 +1764,9 @@ ps_write_document(uchar *author,	/* I - Author of document */
         	  uchar *copyright,	/* I - Copyright (if any) on the document */
                   uchar *keywords,	/* I - Search keywords */
 		  uchar *subject,	/* I - Subject */
-		  uchar *lang)		/* I - Language */
+		  uchar *lang, FILE *out)		/* I - Language */
 {
-  FILE		*out;			/* Output file */
+  //FILE		*out;			/* Output file */
   int		page;			/* Current page # */
   int		first;			/* First chapter */
 
@@ -1773,7 +1780,7 @@ ps_write_document(uchar *author,	/* I - Author of document */
 
   if (!OutputFiles)
   {
-    out = open_file();
+    out = open_file(out);
 
     if (out == NULL)
     {
@@ -1794,7 +1801,7 @@ ps_write_document(uchar *author,	/* I - Author of document */
   {
     if (OutputFiles)
     {
-      out = open_file();
+      out = open_file(out);
       write_prolog(out, chapter_outstarts[first], author, creator, copyright,
                    keywords, subject);
     }
@@ -1819,7 +1826,7 @@ ps_write_document(uchar *author,	/* I - Author of document */
 
     if (OutputFiles)
     {
-      out = open_file();
+      out = open_file(out);
       if (out == NULL)
       {
         progress_error(HD_ERROR_WRITE_ERROR,
@@ -2197,10 +2204,10 @@ pdf_write_document(uchar  *author,	// I - Author of document
 		   uchar  *subject,	// I - Subject
 		   uchar  *lang,	// I - Language
 		   tree_t *doc,		// I - Document
-                   tree_t *toc)		// I - Table of contents tree
+                   tree_t *toc, FILE *out)		// I - Table of contents tree
 {
   int		i;			// Looping variable
-  FILE		*out;			// Output file
+  //FILE		*out;			// Output file
   int		outpage,		// Current page #
 		heading;		// Current heading #
   int		bytes;			// Number of bytes
@@ -2208,10 +2215,11 @@ pdf_write_document(uchar  *author,	// I - Author of document
   int		num_images;		// Number of images in document
   image_t	**images;		// Pointers to images
   render_t	temp;			// Dummy rendering data...
+  int is_out = out != NULL;
 
 
   // Open the output file...
-  out = open_file();
+  out = open_file(out);
   if (out == NULL)
   {
     progress_error(HD_ERROR_WRITE_ERROR,
@@ -2324,7 +2332,7 @@ pdf_write_document(uchar  *author,	// I - Author of document
   // If we are sending the output to stdout, copy the temp file now...
   //
 
-  if (!OutputPath[0] && !OUT)
+  if (!OutputPath[0] && !is_out)
   {
 #ifdef WIN32
     // Make sure we are in binary mode...  stupid Microsoft!
@@ -9649,10 +9657,10 @@ get_title(tree_t *doc)	/* I - Document */
  */
 
 static FILE *		/* O - File pointer */
-open_file(void)
+open_file(FILE *fp)
 {
   char	filename[255];	/* Filename */
-  if (OUT) return OUT;
+  if (fp) return fp;
 
   if (OutputFiles && PSLevel > 0)
   {
