@@ -161,8 +161,8 @@ VAR int		PSLevel		VALUE(0),	/* Language level (0 for PDF) */
 		PSCommands	VALUE(0),	/* Output PostScript commands? */
 		XRXComments	VALUE(0);	/* Output Xerox comments? */
 VAR int		PageWidth	VALUE(595),	/* Page width in points */
-		PageLength	VALUE(792),	/* Page length in points */
-		PageLeft	VALUE(72),	/* Left margin */
+		PageLength	VALUE(842),	/* Page length in points */
+		PageLeft	VALUE(36),	/* Left margin */
 		PageRight	VALUE(36),	/* Right margin */
 		PageTop		VALUE(36),	/* Top margin */
 		PageBottom	VALUE(36),	/* Bottom margin */
