@@ -402,8 +402,7 @@ write_header(
 		  "monospace",
 		  "serif",
 		  "sans-serif",
-		  "symbol",
-		  "dingbats"
+		  "symbol"
 		};
 
 

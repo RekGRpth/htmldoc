@@ -155,24 +155,6 @@ uchar		_htmlSortedChars[256];	/* Sorted character indices */
 const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		{
 		  {
-		    "Courier",
-		    "Courier-Bold",
-		    "Courier-Oblique",
-		    "Courier-BoldOblique"
-		  },
-		  {
-		    "Times-Roman",
-		    "Times-Bold",
-		    "Times-Italic",
-		    "Times-BoldItalic"
-		  },
-		  {
-		    "Helvetica",
-		    "Helvetica-Bold",
-		    "Helvetica-Oblique",
-		    "Helvetica-BoldOblique"
-		  },
-		  {
 		    "Monospace",
 		    "Monospace-Bold",
 		    "Monospace-Oblique",
@@ -195,24 +177,14 @@ const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		    "Symbol",
 		    "Symbol",
 		    "Symbol"
-		  },
-		  {
-		    "Dingbats",
-		    "Dingbats",
-		    "Dingbats",
-		    "Dingbats"
 		  }
 		};
 int		_htmlStandardFonts[TYPE_MAX] =
 		{
-		  0,	// Courier
-		  0,	// Times
-		  0,	// Helvetica
 		  0,	// Monospace
 		  0,	// Sans
 		  0,	// Serif
-		  0,	// Symbol
-		  0	// Dingbats
+		  0	// Symbol
 		};
 
 
@@ -1028,8 +1000,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
           break;
 
       case MARKUP_PRE :
-          t->typeface      = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_MONOSPACE
-	                                                     : TYPE_COURIER;
+          t->typeface      = _htmlBodyFont = TYPE_MONOSPACE;
           t->size          = SIZE_PRE;
           t->style         = STYLE_NORMAL;
           t->subscript     = 0;
@@ -1192,27 +1163,22 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
               else if (!strcasecmp(font, "arial") ||
 	               !strcasecmp(font, "helvetica"))
               {
-        	t->typeface = TYPE_HELVETICA;
+        	t->typeface = TYPE_SANS_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "times"))
 	      {
-        	t->typeface = TYPE_TIMES;
+        	t->typeface = TYPE_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "courier"))
 	      {
-        	t->typeface = TYPE_COURIER;
+        	t->typeface = TYPE_MONOSPACE;
 		break;
 	      }
 	      else if (!strcasecmp(font, "symbol"))
 	      {
         	t->typeface = TYPE_SYMBOL;
-		break;
-	      }
-	      else if (!strcasecmp(font, "dingbat"))
-	      {
-        	t->typeface = TYPE_DINGBATS;
 		break;
 	      }
 	    }
@@ -1318,27 +1284,22 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
               else if (!strcasecmp(font, "arial") ||
 	               !strcasecmp(font, "helvetica"))
               {
-        	t->typeface = TYPE_HELVETICA;
+        	t->typeface = TYPE_SANS_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "times"))
 	      {
-        	t->typeface = TYPE_TIMES;
+        	t->typeface = TYPE_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "courier"))
 	      {
-        	t->typeface = TYPE_COURIER;
+        	t->typeface = TYPE_MONOSPACE;
 		break;
 	      }
 	      else if (!strcasecmp(font, "symbol"))
 	      {
         	t->typeface = TYPE_SYMBOL;
-		break;
-	      }
-	      else if (!strcasecmp(font, "dingbat"))
-	      {
-        	t->typeface = TYPE_DINGBATS;
 		break;
 	      }
 	    }
@@ -1464,8 +1425,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	    have_whitespace = 0;
 	  }
 
-          t->typeface = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_MONOSPACE
-	                                                : TYPE_COURIER;
+          t->typeface = _htmlBodyFont = TYPE_MONOSPACE;
 
           descend = 1;
           break;
@@ -1486,8 +1446,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
       case MARKUP_VAR :
           t->style = (style_t)(t->style | STYLE_ITALIC);
       case MARKUP_DFN :
-          t->typeface = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_SANS_SERIF
-	                                                : TYPE_HELVETICA;
+          t->typeface = _htmlBodyFont = TYPE_SANS_SERIF;
 
           descend = 1;
           break;
@@ -1965,8 +1924,7 @@ htmlNewTree(tree_t   *parent,	/* I - Parent entry */
         break;
 
     case MARKUP_PRE :
-        t->typeface      = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_MONOSPACE
-	                                                   : TYPE_COURIER;
+        t->typeface      = _htmlBodyFont = TYPE_MONOSPACE;
         t->size          = SIZE_PRE;
         t->style         = STYLE_NORMAL;
         t->subscript     = 0;

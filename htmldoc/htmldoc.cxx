@@ -276,12 +276,12 @@ main(int  argc,				/* I - Number of command-line arguments */
 	         !strcasecmp(argv[i], "sans"))
 	  _htmlBodyFont = TYPE_SANS_SERIF;
         else if (!strcasecmp(argv[i], "courier"))
-	  _htmlBodyFont = TYPE_COURIER;
+	  _htmlBodyFont = TYPE_MONOSPACE;
         else if (!strcasecmp(argv[i], "times"))
-	  _htmlBodyFont = TYPE_TIMES;
+	  _htmlBodyFont = TYPE_SERIF;
         else if (!strcasecmp(argv[i], "helvetica") ||
 	         !strcasecmp(argv[i], "arial"))
-	  _htmlBodyFont = TYPE_HELVETICA;
+	  _htmlBodyFont = TYPE_SANS_SERIF;
       }
       else
         usage(argv[i - 1]);
@@ -545,63 +545,63 @@ main(int  argc,				/* I - Number of command-line arguments */
       {
         if (!strcasecmp(argv[i], "courier"))
 	{
-	  HeadFootType  = TYPE_COURIER;
+	  HeadFootType  = TYPE_MONOSPACE;
 	  HeadFootStyle = STYLE_NORMAL;
 	}
         else if (!strcasecmp(argv[i], "courier-bold"))
 	{
-	  HeadFootType  = TYPE_COURIER;
+	  HeadFootType  = TYPE_MONOSPACE;
 	  HeadFootStyle = STYLE_BOLD;
 	}
         else if (!strcasecmp(argv[i], "courier-oblique"))
 	{
-	  HeadFootType  = TYPE_COURIER;
+	  HeadFootType  = TYPE_MONOSPACE;
 	  HeadFootStyle = STYLE_ITALIC;
 	}
         else if (!strcasecmp(argv[i], "courier-boldoblique"))
 	{
-	  HeadFootType  = TYPE_COURIER;
+	  HeadFootType  = TYPE_MONOSPACE;
 	  HeadFootStyle = STYLE_BOLD_ITALIC;
 	}
         else if (!strcasecmp(argv[i], "times") ||
 	         !strcasecmp(argv[i], "times-roman"))
 	{
-	  HeadFootType  = TYPE_TIMES;
+	  HeadFootType  = TYPE_SERIF;
 	  HeadFootStyle = STYLE_NORMAL;
 	}
         else if (!strcasecmp(argv[i], "times-bold"))
 	{
-	  HeadFootType  = TYPE_TIMES;
+	  HeadFootType  = TYPE_SERIF;
 	  HeadFootStyle = STYLE_BOLD;
 	}
         else if (!strcasecmp(argv[i], "times-italic"))
 	{
-	  HeadFootType  = TYPE_TIMES;
+	  HeadFootType  = TYPE_SERIF;
 	  HeadFootStyle = STYLE_ITALIC;
 	}
         else if (!strcasecmp(argv[i], "times-bolditalic"))
 	{
-	  HeadFootType  = TYPE_TIMES;
+	  HeadFootType  = TYPE_SERIF;
 	  HeadFootStyle = STYLE_BOLD_ITALIC;
 	}
         else if (!strcasecmp(argv[i], "helvetica"))
 	{
-	  HeadFootType  = TYPE_HELVETICA;
+	  HeadFootType  = TYPE_SANS_SERIF;
 	  HeadFootStyle = STYLE_NORMAL;
 	}
         else if (!strcasecmp(argv[i], "helvetica-bold"))
 	{
-	  HeadFootType  = TYPE_HELVETICA;
+	  HeadFootType  = TYPE_SANS_SERIF;
 	  HeadFootStyle = STYLE_BOLD;
 	}
         else if (!strcasecmp(argv[i], "helvetica-oblique"))
 	{
-	  HeadFootType  = TYPE_HELVETICA;
+	  HeadFootType  = TYPE_SANS_SERIF;
 	  HeadFootStyle = STYLE_ITALIC;
 	}
         else if (!strcasecmp(argv[i], "helvetica-boldoblique"))
 	{
-	  HeadFootType  = TYPE_HELVETICA;
+	  HeadFootType  = TYPE_SANS_SERIF;
 	  HeadFootStyle = STYLE_BOLD_ITALIC;
 	}
         else if (!strcasecmp(argv[i], "monospace"))
@@ -694,12 +694,12 @@ main(int  argc,				/* I - Number of command-line arguments */
       if (i < argc)
       {
         if (!strcasecmp(argv[i], "courier"))
-	  _htmlHeadingFont = TYPE_COURIER;
+	  _htmlHeadingFont = TYPE_MONOSPACE;
         else if (!strcasecmp(argv[i], "times"))
-	  _htmlHeadingFont = TYPE_TIMES;
+	  _htmlHeadingFont = TYPE_SERIF;
         else if (!strcasecmp(argv[i], "helvetica") ||
 	         !strcasecmp(argv[i], "arial"))
-	  _htmlHeadingFont = TYPE_HELVETICA;
+	  _htmlHeadingFont = TYPE_SANS_SERIF;
         else if (!strcasecmp(argv[i], "monospace"))
 	  _htmlHeadingFont = TYPE_MONOSPACE;
         else if (!strcasecmp(argv[i], "serif"))
@@ -2210,12 +2210,12 @@ parse_options(const char   *line,	// I - Options from book file
     else if (!strcmp(temp, "--headingfont"))
     {
       if (!strcasecmp(temp2, "courier"))
-	_htmlHeadingFont = TYPE_COURIER;
+	_htmlHeadingFont = TYPE_MONOSPACE;
       else if (!strcasecmp(temp2, "times"))
-	_htmlHeadingFont = TYPE_TIMES;
+	_htmlHeadingFont = TYPE_SERIF;
       else if (!strcasecmp(temp2, "helvetica") ||
 	       !strcasecmp(temp2, "arial"))
-	_htmlHeadingFont = TYPE_HELVETICA;
+	_htmlHeadingFont = TYPE_SANS_SERIF;
       else if (!strcasecmp(temp2, "monospace"))
 	_htmlHeadingFont = TYPE_MONOSPACE;
       else if (!strcasecmp(temp2, "serif"))
@@ -2232,12 +2232,12 @@ parse_options(const char   *line,	// I - Options from book file
       else if (!strcasecmp(temp2, "sans"))
 	_htmlBodyFont = TYPE_SANS_SERIF;
       else if (!strcasecmp(temp2, "courier"))
-	_htmlBodyFont = TYPE_COURIER;
+	_htmlBodyFont = TYPE_MONOSPACE;
       else if (!strcasecmp(temp2, "times"))
-	_htmlBodyFont = TYPE_TIMES;
+	_htmlBodyFont = TYPE_SERIF;
       else if (!strcasecmp(temp2, "helvetica") ||
 	       !strcasecmp(temp2, "arial"))
-	_htmlBodyFont = TYPE_HELVETICA;
+	_htmlBodyFont = TYPE_SANS_SERIF;
     }
     else if (strcmp(temp, "--headfootsize") == 0)
       HeadFootSize = atof(temp2);
@@ -2245,63 +2245,63 @@ parse_options(const char   *line,	// I - Options from book file
     {
       if (!strcasecmp(temp2, "courier"))
       {
-	HeadFootType  = TYPE_COURIER;
+	HeadFootType  = TYPE_MONOSPACE;
 	HeadFootStyle = STYLE_NORMAL;
       }
       else if (!strcasecmp(temp2, "courier-bold"))
       {
-	HeadFootType  = TYPE_COURIER;
+	HeadFootType  = TYPE_MONOSPACE;
 	HeadFootStyle = STYLE_BOLD;
       }
       else if (!strcasecmp(temp2, "courier-oblique"))
       {
-	HeadFootType  = TYPE_COURIER;
+	HeadFootType  = TYPE_MONOSPACE;
 	HeadFootStyle = STYLE_ITALIC;
       }
       else if (!strcasecmp(temp2, "courier-boldoblique"))
       {
-	HeadFootType  = TYPE_COURIER;
+	HeadFootType  = TYPE_MONOSPACE;
 	HeadFootStyle = STYLE_BOLD_ITALIC;
       }
       else if (!strcasecmp(temp2, "times") ||
 	       !strcasecmp(temp2, "times-roman"))
       {
-	HeadFootType  = TYPE_TIMES;
+	HeadFootType  = TYPE_SERIF;
 	HeadFootStyle = STYLE_NORMAL;
       }
       else if (!strcasecmp(temp2, "times-bold"))
       {
-	HeadFootType  = TYPE_TIMES;
+	HeadFootType  = TYPE_SERIF;
 	HeadFootStyle = STYLE_BOLD;
       }
       else if (!strcasecmp(temp2, "times-italic"))
       {
-	HeadFootType  = TYPE_TIMES;
+	HeadFootType  = TYPE_SERIF;
 	HeadFootStyle = STYLE_ITALIC;
       }
       else if (!strcasecmp(temp2, "times-bolditalic"))
       {
-	HeadFootType  = TYPE_TIMES;
+	HeadFootType  = TYPE_SERIF;
 	HeadFootStyle = STYLE_BOLD_ITALIC;
       }
       else if (!strcasecmp(temp2, "helvetica"))
       {
-	HeadFootType  = TYPE_HELVETICA;
+	HeadFootType  = TYPE_SANS_SERIF;
 	HeadFootStyle = STYLE_NORMAL;
       }
       else if (!strcasecmp(temp2, "helvetica-bold"))
       {
-	HeadFootType  = TYPE_HELVETICA;
+	HeadFootType  = TYPE_SANS_SERIF;
 	HeadFootStyle = STYLE_BOLD;
       }
       else if (!strcasecmp(temp2, "helvetica-oblique"))
       {
-	HeadFootType  = TYPE_HELVETICA;
+	HeadFootType  = TYPE_SANS_SERIF;
 	HeadFootStyle = STYLE_ITALIC;
       }
       else if (!strcasecmp(temp2, "helvetica-boldoblique"))
       {
-	HeadFootType  = TYPE_HELVETICA;
+	HeadFootType  = TYPE_SANS_SERIF;
 	HeadFootStyle = STYLE_BOLD_ITALIC;
       }
       else if (!strcasecmp(temp2, "monospace"))

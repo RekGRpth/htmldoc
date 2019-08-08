@@ -174,16 +174,12 @@ typedef enum
 
 typedef enum
 {
-  TYPE_COURIER = 0,
-  TYPE_TIMES,
-  TYPE_HELVETICA,
-  TYPE_MONOSPACE,
+  TYPE_MONOSPACE = 0,
   TYPE_SERIF,
   TYPE_SANS_SERIF,
-  TYPE_SYMBOL,
-  TYPE_DINGBATS
+  TYPE_SYMBOL
 } typeface_t;
-#define TYPE_MAX (typeface_t)(TYPE_DINGBATS + 1)
+#define TYPE_MAX (typeface_t)(TYPE_SYMBOL + 1)
 
 
 /*
