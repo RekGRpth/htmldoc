@@ -5731,10 +5731,10 @@ render_table_row(hdtable_t &table,
         snprintf(table_text, sizeof(table_text), "cell=%p [%d,%d]",
                  (void *)cells[row][col], row, col);
         r = new_render(temp_page, RENDER_TEXT, *x, temp_y,
-                       get_width((uchar *)table_text, TYPE_MONOSPACE, STYLE_NORMAL, 1),
+                       get_width((uchar *)table_text, TYPE_COURIER, STYLE_NORMAL, 1),
                        _htmlSizes[1], table_text);
 
-        r->data.text.typeface = TYPE_MONOSPACE;
+        r->data.text.typeface = TYPE_COURIER;
         r->data.text.style    = STYLE_NORMAL;
         r->data.text.size     = (float)_htmlSizes[1];
       }
@@ -6881,10 +6881,10 @@ parse_table(tree_t *t,			// I - Tree to parse
 
     snprintf(table_text, sizeof(table_text), "t=%p", (void *)t);
     r = new_render(*page, RENDER_TEXT, left, *y,
-                   get_width((uchar *)table_text, TYPE_MONOSPACE, STYLE_NORMAL, 3),
+                   get_width((uchar *)table_text, TYPE_COURIER, STYLE_NORMAL, 3),
 		   _htmlSizes[3], table_text);
 
-    r->data.text.typeface = TYPE_MONOSPACE;
+    r->data.text.typeface = TYPE_COURIER;
     r->data.text.style    = STYLE_NORMAL;
     r->data.text.size     = (float)_htmlSizes[3];
   }
@@ -12273,9 +12273,9 @@ write_type1(FILE       *out,		/* I - File to write to */
 		length3;		/* Length3 value for font */
   static int	tflags[] =		/* PDF typeface flags */
 		{
-		  33,			/* Monospace */
-		  34,			/* Serif */
-		  32,			/* Sans */
+		  33,			/* Courier */
+		  34,			/* Times-Roman */
+		  32,			/* Helvetica */
 		  4,			/* Symbol */
 		  4			/* Dingbats */
 		};
