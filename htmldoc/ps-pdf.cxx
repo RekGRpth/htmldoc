@@ -1776,7 +1776,7 @@ ps_write_document(uchar *author,	/* I - Author of document */
   */
 
   chapter = -1;
-  out     = NULL;
+//  out     = NULL;
 
   if (!OutputFiles)
   {
