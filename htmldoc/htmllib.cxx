@@ -140,9 +140,9 @@ typeface_t	_htmlBodyFont = TYPE_TIMES,
 int		_htmlInitialized = 0;	/* Initialized glyphs yet? */
 char		_htmlCharSet[256] = "utf-8";
 					/* Character set name */
-double		_htmlWidths[TYPE_MAX][STYLE_MAX][256];
+float		_htmlWidths[TYPE_MAX][STYLE_MAX][256];
 					/* Character widths of fonts */
-double          _htmlWidthsAll[TYPE_MAX][STYLE_MAX][65536];
+float          _htmlWidthsAll[TYPE_MAX][STYLE_MAX][65536];
                                         /* Unicode widths of fonts */
 int		_htmlUnicode[256];	/* Character to Unicode mapping */
 uchar           _htmlCharacters[65536]; /* Unicode to character mapping */
