@@ -117,7 +117,7 @@ parse_tree(tree_t *t)		/* I - Document tree */
   tree_t	*target,	/* Link target */
 		*temp;		/* Looping var */
   uchar		heading[255],	/* Heading numbers */
-		link[255],	/* Actual link */
+		link[255+1],	/* Actual link */
 		baselink[255],	/* Base link (numbered) */
 		*existing;	/* Existing link string */
   int		i, level;	/* Header level */

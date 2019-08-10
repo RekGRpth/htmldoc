@@ -9659,7 +9659,7 @@ get_title(tree_t *doc)	/* I - Document */
 static FILE *		/* O - File pointer */
 open_file(FILE *fp)
 {
-  char	filename[255];	/* Filename */
+  char	filename[1024+18];	/* Filename */
   if (fp) return fp;
 
   if (OutputFiles && PSLevel > 0)

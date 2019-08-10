@@ -581,7 +581,7 @@ httpSaveCredentials(
 {
   FILE			*fp;		/* Certificate file */
   char			filename[1024],	/* filename.crt */
-			nfilename[1024],/* filename.crt.N */
+			nfilename[1024+2],/* filename.crt.N */
 			temp[1024],	/* Temporary string */
 			line[256];	/* Base64-encoded line */
   const unsigned char	*ptr;		/* Pointer into certificate */

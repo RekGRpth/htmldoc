@@ -208,7 +208,7 @@ write_header(FILE   **out,	/* IO - Output file */
              uchar  *docnumber,	/* I - ID number for document */
 	     tree_t *t)		/* I - Current document file */
 {
-  char		realname[1024];	/* Real filename */
+  char		realname[1024+1];	/* Real filename */
   const char	*basename;	/* Filename without directory */
   int		newfile;	/* Non-zero if this is a new file */
   static const char *families[] =/* Typeface names */

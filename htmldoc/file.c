@@ -252,10 +252,10 @@ file_directory(const char *s)	/* I - Filename or URL */
     * Handle URLs...
     */
 
-    char	scheme[HTTP_MAX_URI],
-		username[HTTP_MAX_URI],
-		hostname[HTTP_MAX_URI],
-		resource[HTTP_MAX_URI];
+    char	scheme[HTTP_MAX_URI/3],
+		username[HTTP_MAX_URI/3],
+		hostname[HTTP_MAX_URI/3],
+		resource[HTTP_MAX_URI/3];
     int		port;
 
 
@@ -348,14 +348,14 @@ file_find_check(const char *filename)	/* I - File or URL */
 {
   int		i;			/* Looping var */
   int		retry;			/* Current retry */
-  char		scheme[HTTP_MAX_URI],	/* Method/scheme */
-		username[HTTP_MAX_URI],	/* Username:password */
-		hostname[HTTP_MAX_URI],	/* Hostname */
-		resource[HTTP_MAX_URI];	/* Resource */
+  char		scheme[HTTP_MAX_URI/3],	/* Method/scheme */
+		username[HTTP_MAX_URI/3],	/* Username:password */
+		hostname[HTTP_MAX_URI/3],	/* Hostname */
+		resource[HTTP_MAX_URI/3];	/* Resource */
   int		port;			/* Port number */
   const char	*connhost;		/* Host to connect to */
   int		connport;		/* Port to connect to */
-  char		connpath[HTTP_MAX_URI],	/* Path for GET */
+  char		connpath[HTTP_MAX_URI+12],	/* Path for GET */
 		connauth[HTTP_MAX_VALUE];/* Auth string */
   http_status_t	status;			/* Status of request... */
   FILE		*fp;			/* Web file */
@@ -840,7 +840,7 @@ file_localize(const char *filename,	/* I - Filename */
   const char	*newslash;		/* Directory separator */
   char		*slash;			/* Directory separator */
   char		cwd[1024];		/* Current directory */
-  char		temp[1024];		/* Temporary pathname */
+  char		temp[1025];		/* Temporary pathname */
   static char	newfilename[1024];	/* New filename */
 
 
@@ -959,10 +959,10 @@ file_nolocal(void)
 void
 file_proxy(const char *url)	/* I - URL of proxy server */
 {
-   char	scheme[HTTP_MAX_URI],	/* Method name (must be HTTP) */
-	username[HTTP_MAX_URI],	/* Username:password information */
-	hostname[HTTP_MAX_URI],	/* Hostname */
-	resource[HTTP_MAX_URI];	/* Resource name */
+   char	scheme[HTTP_MAX_URI/3],	/* Method name (must be HTTP) */
+	username[HTTP_MAX_URI/3],	/* Username:password information */
+	hostname[HTTP_MAX_URI/3],	/* Hostname */
+	resource[HTTP_MAX_URI/3];	/* Resource name */
   int	port;			/* Port number */
 
 
