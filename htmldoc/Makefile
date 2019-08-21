@@ -34,19 +34,20 @@ COMMONOBJS =	array.o \
 		string.o \
 		tls.o \
 		toc.o \
-		util.o
-
-HTMLDOCOBJS =	gui.o \
-		epub.o \
-		html.o \
-		htmldoc.o \
+		util.o \
 		htmlsep.o \
 		license.o \
 		markdown.o \
 		mmd.o \
 		ps-pdf.o \
 		rc4.o \
-		zipc.o
+		zipc.o \
+		gui.o \
+		epub.o \
+		html.o
+
+HTMLDOCOBJS =	htmldoc.o
+
 OBJS	=	$(COMMONOBJS) $(HTMLDOCOBJS)
 
 
@@ -54,7 +55,7 @@ OBJS	=	$(COMMONOBJS) $(HTMLDOCOBJS)
 # Make everything...
 #
 
-all:	htmldoc$(EXEEXT) libhtmldoc.so
+all:	libhtmldoc.so htmldoc$(EXEEXT)
 
 
 #
@@ -64,8 +65,8 @@ all:	htmldoc$(EXEEXT) libhtmldoc.so
 install:	all
 	$(INSTALL_DIR) $(BUILDROOT)$(bindir)
 	$(INSTALL_DIR) $(BUILDROOT)$(libdir)
-	$(INSTALL_BIN) htmldoc$(EXEEXT) $(BUILDROOT)$(bindir)
 	$(INSTALL_BIN) libhtmldoc.so $(BUILDROOT)$(libdir)
+	$(INSTALL_BIN) htmldoc$(EXEEXT) $(BUILDROOT)$(bindir)
 
 
 #
@@ -73,7 +74,7 @@ install:	all
 #
 
 clean:
-	$(RM) $(OBJS) htmldoc$(EXEEXT) libhtmldoc.so
+	$(RM) $(OBJS) libhtmldoc.so htmldoc$(EXEEXT)
 
 
 #
@@ -89,16 +90,16 @@ depend:
 # htmldoc
 #
 
-htmldoc$(EXEEXT):	$(HTMLDOCOBJS) $(COMMONOBJS) ../Makedefs
+libhtmldoc.so:	$(COMMONOBJS) $(HTMLDOCOBJS) ../Makedefs
 	echo Linking $@...
-	$(CXX) $(LDFLAGS) -o htmldoc$(EXEEXT) $(HTMLDOCOBJS) $(COMMONOBJS) $(LIBS)
+	$(CXX) $(LDFLAGS) -shared -Wl,-soname,$(notdir $@) -o libhtmldoc.so $(COMMONOBJS) $(HTMLDOCOBJS) $(LIBS)
+
+htmldoc$(EXEEXT):	$(HTMLDOCOBJS) ../Makedefs
+	echo Linking $@...
+	$(CXX) $(LDFLAGS) -o htmldoc$(EXEEXT) $(HTMLDOCOBJS) $(LIBS) -lhtmldoc
 	if test `uname` = Darwin; then \
 		$(MAKE) -$(MAKEFLAGS) htmldoc.app || exit 1; \
 	fi
-
-libhtmldoc.so:	$(HTMLDOCOBJS) $(COMMONOBJS) ../Makedefs
-	echo Linking $@...
-	$(CXX) $(LDFLAGS) -shared -Wl,-soname,$(notdir $@) -o libhtmldoc.so $(HTMLDOCOBJS) $(COMMONOBJS) $(LIBS)
 
 htmldoc.app:	htmldoc
 	echo Creating application bundle...
