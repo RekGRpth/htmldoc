@@ -187,11 +187,11 @@ const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		};
 int		_htmlStandardFonts[TYPE_MAX] =
 		{
-		  1,	// Courier
-		  1,	// Times
-		  1,	// Helvetica
-		  1,	// Symbol
-		  1	// Dingbats
+		  0,	// Courier
+		  0,	// Times
+		  0,	// Helvetica
+		  0,	// Symbol
+		  0	// Dingbats
 		};
 
 
