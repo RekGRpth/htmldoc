@@ -170,7 +170,7 @@ VAR int		PageWidth	VALUE(595),	/* Page width in points */
 		Landscape	VALUE(0),	/* Landscape orientation? */
 		NumberUp	VALUE(1);	/* Number-up pages */
 
-VAR typeface_t	HeadFootType	VALUE(TYPE_HELVETICA);
+VAR typeface_t	HeadFootType	VALUE(TYPE_SANS);
 						/* Typeface for header & footer */
 VAR style_t	HeadFootStyle	VALUE(STYLE_NORMAL);
 						/* Type style */

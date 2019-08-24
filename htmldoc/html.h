@@ -174,9 +174,9 @@ typedef enum
 
 typedef enum
 {
-  TYPE_COURIER = 0,
-  TYPE_TIMES,
-  TYPE_HELVETICA,
+  TYPE_MONO = 0,
+  TYPE_SERIF,
+  TYPE_SANS,
   TYPE_SYMBOL,
   TYPE_DINGBATS
 } typeface_t;

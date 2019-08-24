@@ -134,8 +134,8 @@ double		_htmlSizes[8] =		/* Point size for each HTML size */
 		{ 6.0, 8.0, 9.0, 11.0, 14.0, 17.0, 20.0, 24.0 };
 double		_htmlSpacings[8] =	/* Line height for each HTML size */
 		{ 7.2, 9.6, 10.8, 13.2, 16.8, 20.4, 24.0, 28.8 };
-typeface_t	_htmlBodyFont = TYPE_TIMES,
-		_htmlHeadingFont = TYPE_HELVETICA;
+typeface_t	_htmlBodyFont = TYPE_SERIF,
+		_htmlHeadingFont = TYPE_SANS;
 
 int		_htmlInitialized = 0;	/* Initialized glyphs yet? */
 char		_htmlCharSet[256] = "utf-8";
@@ -155,22 +155,22 @@ uchar		_htmlSortedChars[256];	/* Sorted character indices */
 const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		{
 		  {
-		    "Courier",
-		    "Courier-Bold",
-		    "Courier-Oblique",
-		    "Courier-BoldOblique"
+		    "Mono-Regular",
+		    "Mono-Bold",
+		    "Mono-Italic",
+		    "Mono-BoldItalic"
 		  },
 		  {
-		    "Times-Roman",
-		    "Times-Bold",
-		    "Times-Italic",
-		    "Times-BoldItalic"
+		    "Serif-Regular",
+		    "Serif-Bold",
+		    "Serif-Italic",
+		    "Serif-BoldItalic"
 		  },
 		  {
-		    "Helvetica",
-		    "Helvetica-Bold",
-		    "Helvetica-Oblique",
-		    "Helvetica-BoldOblique"
+		    "Sans-Regular",
+		    "Sans-Bold",
+		    "Sans-Italic",
+		    "Sans-BoldItalic"
 		  },
 		  {
 		    "Symbol",
@@ -187,9 +187,9 @@ const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		};
 int		_htmlStandardFonts[TYPE_MAX] =
 		{
-		  0,	// Courier
-		  0,	// Times
-		  0,	// Helvetica
+		  0,	// Mono
+		  0,	// Serif
+		  0,	// Sans
 		  0,	// Symbol
 		  0	// Dingbats
 		};
@@ -1007,7 +1007,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
           break;
 
       case MARKUP_PRE :
-          t->typeface      = _htmlBodyFont = TYPE_COURIER;
+          t->typeface      = _htmlBodyFont = TYPE_MONO;
           t->size          = SIZE_PRE;
           t->style         = STYLE_NORMAL;
           t->subscript     = 0;
@@ -1153,34 +1153,34 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 
               if (!strcasecmp(font, "serif"))
 	      {
-        	t->typeface = TYPE_TIMES;
+        	t->typeface = TYPE_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "sans-serif") ||
 	               !strcasecmp(font, "sans"))
 	      {
-        	t->typeface = TYPE_HELVETICA;
+        	t->typeface = TYPE_SANS;
 		break;
 	      }
               else if (!strcasecmp(font, "monospace"))
 	      {
-        	t->typeface = TYPE_COURIER;
+        	t->typeface = TYPE_MONO;
 		break;
 	      }
               else if (!strcasecmp(font, "arial") ||
 	               !strcasecmp(font, "helvetica"))
               {
-        	t->typeface = TYPE_HELVETICA;
+        	t->typeface = TYPE_SANS;
 		break;
 	      }
               else if (!strcasecmp(font, "times"))
 	      {
-        	t->typeface = TYPE_TIMES;
+        	t->typeface = TYPE_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "courier"))
 	      {
-        	t->typeface = TYPE_COURIER;
+        	t->typeface = TYPE_MONO;
 		break;
 	      }
 	      else if (!strcasecmp(font, "symbol"))
@@ -1279,34 +1279,34 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 
               if (!strcasecmp(font, "serif"))
 	      {
-        	t->typeface = TYPE_TIMES;
+        	t->typeface = TYPE_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "sans-serif") ||
 	               !strcasecmp(font, "sans"))
 	      {
-        	t->typeface = TYPE_HELVETICA;
+        	t->typeface = TYPE_SANS;
 		break;
 	      }
               else if (!strcasecmp(font, "mono"))
 	      {
-        	t->typeface = TYPE_COURIER;
+        	t->typeface = TYPE_MONO;
 		break;
 	      }
               else if (!strcasecmp(font, "arial") ||
 	               !strcasecmp(font, "helvetica"))
               {
-        	t->typeface = TYPE_HELVETICA;
+        	t->typeface = TYPE_SANS;
 		break;
 	      }
               else if (!strcasecmp(font, "times"))
 	      {
-        	t->typeface = TYPE_TIMES;
+        	t->typeface = TYPE_SERIF;
 		break;
 	      }
               else if (!strcasecmp(font, "courier"))
 	      {
-        	t->typeface = TYPE_COURIER;
+        	t->typeface = TYPE_MONO;
 		break;
 	      }
 	      else if (!strcasecmp(font, "symbol"))
@@ -1442,7 +1442,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	    have_whitespace = 0;
 	  }
 
-          t->typeface = _htmlBodyFont = TYPE_COURIER;
+          t->typeface = _htmlBodyFont = TYPE_MONO;
 
           descend = 1;
           break;
@@ -1463,7 +1463,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
       case MARKUP_VAR :
           t->style = (style_t)(t->style | STYLE_ITALIC);
       case MARKUP_DFN :
-          t->typeface = _htmlBodyFont = TYPE_HELVETICA;
+          t->typeface = _htmlBodyFont = TYPE_SANS;
 
           descend = 1;
           break;
@@ -1941,7 +1941,7 @@ htmlNewTree(tree_t   *parent,	/* I - Parent entry */
         break;
 
     case MARKUP_PRE :
-        t->typeface      = _htmlBodyFont = TYPE_COURIER;
+        t->typeface      = _htmlBodyFont = TYPE_MONO;
         t->size          = SIZE_PRE;
         t->style         = STYLE_NORMAL;
         t->subscript     = 0;
@@ -2257,7 +2257,7 @@ htmlLoadFontWidths(void)
         if (i < TYPE_SYMBOL)
 	{
 	 /*
-	  * Handle encoding of Courier, Times, and Helvetica using
+	  * Handle encoding of Mono, Serif and Sans using
 	  * assigned charset...
 	  */
 

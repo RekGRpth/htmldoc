@@ -20,20 +20,20 @@ include ../Makedefs
 #
 
 FONTS	=	\
-		Courier \
-		Courier-Bold \
-		Courier-BoldOblique \
-		Courier-Oblique \
 		Dingbats \
-		Helvetica \
-		Helvetica-Bold \
-		Helvetica-BoldOblique \
-		Helvetica-Oblique \
-		Symbol \
-		Times-Bold \
-		Times-BoldItalic \
-		Times-Italic \
-		Times-Roman
+		Mono-Bold \
+		Mono-BoldItalic \
+		Mono-Italic \
+		Mono-Regular \
+		Sans-Bold \
+		Sans-BoldItalic \
+		Sans-Italic \
+		Sans-Regular \
+		Serif-Bold \
+		Serif-BoldItalic \
+		Serif-Italic \
+		Serif-Regular \
+		Symbol
 
 
 #

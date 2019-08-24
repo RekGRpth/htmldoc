@@ -5739,10 +5739,10 @@ render_table_row(hdtable_t &table,
         snprintf(table_text, sizeof(table_text), "cell=%p [%d,%d]",
                  (void *)cells[row][col], row, col);
         r = new_render(temp_page, RENDER_TEXT, *x, temp_y,
-                       get_width((uchar *)table_text, TYPE_COURIER, STYLE_NORMAL, 1),
+                       get_width((uchar *)table_text, TYPE_MONO, STYLE_NORMAL, 1),
                        _htmlSizes[1], table_text);
 
-        r->data.text.typeface = TYPE_COURIER;
+        r->data.text.typeface = TYPE_MONO;
         r->data.text.style    = STYLE_NORMAL;
         r->data.text.size     = (float)_htmlSizes[1];
       }
@@ -6889,10 +6889,10 @@ parse_table(tree_t *t,			// I - Tree to parse
 
     snprintf(table_text, sizeof(table_text), "t=%p", (void *)t);
     r = new_render(*page, RENDER_TEXT, left, *y,
-                   get_width((uchar *)table_text, TYPE_COURIER, STYLE_NORMAL, 3),
+                   get_width((uchar *)table_text, TYPE_MONO, STYLE_NORMAL, 3),
 		   _htmlSizes[3], table_text);
 
-    r->data.text.typeface = TYPE_COURIER;
+    r->data.text.typeface = TYPE_MONO;
     r->data.text.style    = STYLE_NORMAL;
     r->data.text.size     = (float)_htmlSizes[3];
   }
@@ -12289,9 +12289,9 @@ write_type1(FILE       *out,		/* I - File to write to */
 		length3;		/* Length3 value for font */
   static int	tflags[] =		/* PDF typeface flags */
 		{
-		  33,			/* Courier */
-		  34,			/* Times-Roman */
-		  32,			/* Helvetica */
+		  33,			/* Mono */
+		  34,			/* Serif */
+		  32,			/* Sans */
 		  4,			/* Symbol */
 		  4			/* Dingbats */
 		};
@@ -12450,7 +12450,7 @@ write_type1(FILE       *out,		/* I - File to write to */
     }
 
    /*
-    * Set the default values (Courier)...
+    * Set the default values (Mono)...
     */
 
     for (ch = 0; ch < 256; ch ++)
@@ -12489,7 +12489,7 @@ write_type1(FILE       *out,		/* I - File to write to */
 	if (typeface < TYPE_SYMBOL)
 	{
 	 /*
-	  * Handle encoding of Courier, Times, and Helvetica using
+	  * Handle encoding of Mono, Serif and Sans using
 	  * assigned charset...
 	  */
 
