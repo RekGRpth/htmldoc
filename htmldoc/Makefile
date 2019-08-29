@@ -94,7 +94,7 @@ libhtmldoc.so:	$(COMMONOBJS) $(HTMLDOCOBJS) ../Makedefs
 	echo Linking $@...
 	$(CXX) $(LDFLAGS) -shared -Wl,-soname,$(notdir $@) -o libhtmldoc.so $(COMMONOBJS) $(HTMLDOCOBJS) $(LIBS)
 
-htmldoc$(EXEEXT):	$(HTMLDOCOBJS) ../Makedefs
+htmldoc$(EXEEXT):	libhtmldoc.so $(HTMLDOCOBJS) ../Makedefs
 	echo Linking $@...
 	$(CXX) $(LDFLAGS) -o htmldoc$(EXEEXT) $(HTMLDOCOBJS) $(LIBS) libhtmldoc.so
 	if test `uname` = Darwin; then \
