@@ -30,6 +30,7 @@
 
 /*#define DEBUG*/
 #include "htmldoc.h"
+#include "markdown.h"
 #include "md5-private.h"
 #define md5_append _cupsMD5Append
 #define md5_finish _cupsMD5Finish
@@ -543,18 +544,20 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
 
   if (TitlePage)
   {
+    const char *title_ext = file_extension(TitleImage);
+
 #ifdef WIN32
     if (TitleImage[0] &&
-        stricmp(file_extension(TitleImage), "bmp") != 0 &&
-	stricmp(file_extension(TitleImage), "gif") != 0 &&
-	stricmp(file_extension(TitleImage), "jpg") != 0 &&
-	stricmp(file_extension(TitleImage), "png") != 0)
+        stricmp(title_ext, "bmp") != 0 &&
+	stricmp(title_ext, "gif") != 0 &&
+	stricmp(title_ext, "jpg") != 0 &&
+	stricmp(title_ext, "png") != 0)
 #else
     if (TitleImage[0] &&
-        strcmp(file_extension(TitleImage), "bmp") != 0 &&
-	strcmp(file_extension(TitleImage), "gif") != 0 &&
-	strcmp(file_extension(TitleImage), "jpg") != 0 &&
-	strcmp(file_extension(TitleImage), "png") != 0)
+        strcmp(title_ext, "bmp") != 0 &&
+	strcmp(title_ext, "gif") != 0 &&
+	strcmp(title_ext, "jpg") != 0 &&
+	strcmp(title_ext, "png") != 0)
 #endif // WIN32
     {
       DEBUG_printf(("pspdf_export: Generating a titlepage using \"%s\"\n",
@@ -577,7 +580,15 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
 	return (1);
       }
 
-      t = htmlReadFile(NULL, fp, file_directory(TitleImage));
+#ifdef _WIN32
+      if (!stricmp(title_ext, "md"))
+#else
+      if (!strcmp(title_ext, "md"))
+#endif // _WIN32
+	t = mdReadFile(NULL, fp, file_directory(TitleImage));
+      else
+	t = htmlReadFile(NULL, fp, file_directory(TitleImage));
+
       htmlFixLinks(t, t, (uchar *)file_directory(TitleImage));
       fclose(fp);
 
@@ -2407,7 +2418,6 @@ pdf_write_resources(FILE *out,		/* I - Output file */
 
 
   memset(fonts_used, 0, sizeof(fonts_used));
-//  fonts_used[HeadFootType * 4 + HeadFootStyle] = 1;
   images_used = background_image != NULL;
   text_used   = 0;
 
@@ -3554,7 +3564,7 @@ render_contents(tree_t *t,		/* I - Tree to parse */
 		*temp,
 		*next;
   render_t	*r;
-#define dot_width  (_htmlSizes[SIZE_P] * _htmlWidths[t->typeface][t->style]['.'])
+  float		dot_width = _htmlSizes[SIZE_P] * _htmlWidths[t->typeface][t->style]['.'] * 0.001f;
 
 
   DEBUG_printf(("render_contents(t=%p, left=%.1f, right=%.1f, bottom=%.1f, top=%.1f, y=%.1f, page=%d, heading=%d, chap=%p)\n",
@@ -4925,7 +4935,7 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
 	{
           if (temp == start)
             temp_width -= _htmlWidths[temp->typeface][temp->style][' '] *
-                          _htmlSizes[temp->size];
+                          _htmlSizes[temp->size] * 0.001f;
           else if (temp_width > 0.0f)
 	    whitespace = 1;
 	}
@@ -5050,7 +5060,7 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
         *dataptr = dataptr[1];
       *dataptr = '\0';
 
-      temp_width = (float)(_htmlWidths[temp->typeface][temp->style][' '] * _htmlSizes[temp->size]);
+      temp_width = _htmlWidths[temp->typeface][temp->style][' '] * _htmlSizes[temp->size] * 0.001f;
       temp->width -= temp_width;
       num_chars --;
     }
@@ -9611,7 +9621,7 @@ get_width(uchar *s,		/* I - String to scan */
           int   size)		/* I - Size */
 {
   uchar	*ptr;			/* Current character */
-  float	width;			/* Current width */
+  int	width;			/* Current width */
 
 
   DEBUG_printf(("get_width(\"%s\", %d, %d, %d)\n",
@@ -9621,10 +9631,10 @@ get_width(uchar *s,		/* I - String to scan */
   if (s == NULL)
     return (0.0);
 
-  for (width = 0.0, ptr = s; *ptr != '\0'; ptr ++)
+  for (width = 0, ptr = s; *ptr != '\0'; ptr ++)
     width += _htmlWidths[typeface][style][*ptr];
 
-  return ((float)(width * _htmlSizes[size]));
+  return (width * _htmlSizes[size] * 0.001f);
 }
 
 
