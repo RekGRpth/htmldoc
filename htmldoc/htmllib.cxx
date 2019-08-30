@@ -140,6 +140,14 @@ typeface_t	_htmlBodyFont = TYPE_SERIF,
 int		_htmlInitialized = 0;	/* Initialized glyphs yet? */
 char		_htmlCharSet[256] = "utf-8";
 					/* Character set name */
+int	_htmlWidthsLoaded[TYPE_MAX][STYLE_MAX] =
+		{			/* Have the widths been loaded? */
+		  { 0, 0, 0, 0 },
+		  { 0, 0, 0, 0 },
+		  { 0, 0, 0, 0 },
+		  { 0, 0, 0, 0 },
+		  { 0, 0, 0, 0 }
+		};
 short		_htmlWidths[TYPE_MAX][STYLE_MAX][256];
 					/* Character widths of fonts */
 short		_htmlWidthsAll[TYPE_MAX][STYLE_MAX][65536];
@@ -2210,9 +2218,8 @@ htmlGetVariable(tree_t *t,	/* I - Tree entry */
  */
 
 void
-htmlLoadFontWidths(void)
+htmlLoadFontWidths(int typeface, int style)
 {
-  int		i, j;			/* Looping vars */
   char		filename[1024];		/* Filenames */
   FILE		*fp;			/* Files */
   int		ch;			/* Character */
@@ -2225,91 +2232,83 @@ htmlLoadFontWidths(void)
   * Now read all of the font widths...
   */
 
-  for (i = 0; i < TYPE_MAX; i ++)
+  for (ch = 0; ch < 256; ch ++)
+    _htmlWidths[typeface][style][ch] = 600;
+
+  if (_htmlUTF8)
   {
-    for (j = 0; j < STYLE_MAX; j ++)
+    for (ch = 0; ch < 65536; ch ++)
+      _htmlWidthsAll[typeface][style][ch] = 600;
+  }
+
+  snprintf(filename, sizeof(filename), "%s/fonts/%s.afm", _htmlData, _htmlFonts[typeface][style]);
+  if ((fp = fopen(filename, "r")) == NULL)
+  {
+#ifndef DEBUG
+    progress_error(HD_ERROR_FILE_NOT_FOUND, "Unable to open font width file %s!", filename);
+#endif /* !DEBUG */
+    return;
+  }
+
+  while (fgets(line, sizeof(line), fp) != NULL)
+  {
+    if (strncmp(line, "C ", 2) != 0)
+      continue;
+
+    if (typeface < TYPE_SYMBOL)
     {
+     /*
+      * Handle encoding of regular fonts using assigned charset...
+      */
+
+      if (sscanf(line, "%*s%*s%*s%*s%f%*s%*s%63s", &width, glyph) != 2)
+	continue;
+
       for (ch = 0; ch < 256; ch ++)
-        _htmlWidths[i][j][ch] = 600;
+      {
+	if (_htmlGlyphs[ch] && !strcmp(_htmlGlyphs[ch], glyph))
+	{
+	  _htmlWidths[typeface][style][ch] = (short)width;
+	  break;
+	}
+      }
 
       if (_htmlUTF8)
       {
-        for (ch = 0; ch < 65536; ch ++)
-          _htmlWidthsAll[i][j][ch] = 600;
-      }
-
-      snprintf(filename, sizeof(filename), "%s/fonts/%s.afm", _htmlData,
-               _htmlFonts[i][j]);
-      if ((fp = fopen(filename, "r")) == NULL)
-      {
-#ifndef DEBUG
-        progress_error(HD_ERROR_FILE_NOT_FOUND,
-                       "Unable to open font width file %s!", filename);
-#endif /* !DEBUG */
-        continue;
-      }
-
-      while (fgets(line, sizeof(line), fp) != NULL)
-      {
-        if (strncmp(line, "C ", 2) != 0)
-	  continue;
-
-        if (i < TYPE_SYMBOL)
+	for (ch = 0; ch < 65536; ch ++)
 	{
-	 /*
-	  * Handle encoding of Mono, Serif and Sans using
-	  * assigned charset...
-	  */
-
-          if (sscanf(line, "%*s%*s%*s%*s%f%*s%*s%63s", &width, glyph) != 2)
-	    continue;
-
-          for (ch = 0; ch < 256; ch ++)
-          {
-	    if (_htmlGlyphs[ch] && !strcmp(_htmlGlyphs[ch], glyph))
-	    {
-	      _htmlWidths[i][j][ch] = (short)width;
-	      break;
-	    }
+	  if (_htmlGlyphsAll[ch] && !strcmp(_htmlGlyphsAll[ch], glyph))
+	  {
+	    _htmlWidthsAll[typeface][style][ch] = (short)width;
+	    break;
 	  }
-
-          if (_htmlUTF8)
-          {
-            for (ch = 0; ch < 65536; ch ++)
-            {
-              if (_htmlGlyphsAll[ch] && !strcmp(_htmlGlyphsAll[ch], glyph))
-              {
-                _htmlWidthsAll[i][j][ch] = (short)width;
-                break;
-              }
-            }
-          }
-	}
-	else
-	{
-	 /*
-	  * Symbol and dingbats fonts uses their own encoding...
-	  */
-
-          if (sscanf(line, "%*s%d%*s%*s%f", &ch, &width) != 2)
-	    continue;
-
-          if (ch < 256 && ch >= 0)
-          {
-            _htmlWidths[i][j][ch]    = (short)width;
-            _htmlWidthsAll[i][j][ch] = (short)width;
-          }
 	}
       }
+    }
+    else
+    {
+     /*
+      * Symbol and Dingbats fonts uses their own encoding...
+      */
 
-      fclose(fp);
+      if (sscanf(line, "%*s%d%*s%*s%f", &ch, &width) != 2)
+	continue;
 
-      // Make sure that non-breaking space has the same width as
-      // a breaking space...
-      _htmlWidths[i][j][160]    = _htmlWidths[i][j][32];
-      _htmlWidthsAll[i][j][160] = _htmlWidthsAll[i][j][32];
+      if (ch < 256 && ch >= 0)
+      {
+	_htmlWidths[typeface][style][ch]    = (short)width;
+	_htmlWidthsAll[typeface][style][ch] = (short)width;
+      }
     }
   }
+
+  fclose(fp);
+
+  // Make sure that non-breaking space has the same width as a breaking space...
+  _htmlWidths[typeface][style][160]    = _htmlWidths[typeface][style][32];
+  _htmlWidthsAll[typeface][style][160] = _htmlWidthsAll[typeface][style][32];
+
+  _htmlWidthsLoaded[typeface][style] = 1;
 }
 
 
@@ -2445,6 +2444,7 @@ htmlSetCharSet(const char *cs)		/* I - Character set file to load */
       progress_error(HD_ERROR_FILE_NOT_FOUND,
                      "Unable to open psglyphs data file!");
 #endif /* !DEBUG */
+  }
 
   memset(_htmlGlyphs, 0, sizeof(_htmlGlyphs));
 
@@ -2464,7 +2464,7 @@ htmlSetCharSet(const char *cs)		/* I - Character set file to load */
       _htmlUnicode[i] = i;
     }
 
-    htmlLoadFontWidths();
+    memset(_htmlWidthsLoaded, 0, sizeof(_htmlWidthsLoaded));
     return;
   }
 
@@ -2523,8 +2523,7 @@ htmlSetCharSet(const char *cs)		/* I - Character set file to load */
       _htmlUnicode[i] = chars[i];
   }
 
-  htmlLoadFontWidths();
-  }
+  memset(_htmlWidthsLoaded, 0, sizeof(_htmlWidthsLoaded));
 }
 
 
@@ -3289,10 +3288,16 @@ compute_size(tree_t *t)		/* I - Tree entry */
     if (int_width > max_width)
       max_width = int_width;
 
+    if (!_htmlWidthsLoaded[t->typeface][t->style])
+      htmlLoadFontWidths(t->typeface, t->style);
+
     width = _htmlWidths[t->typeface][t->style][0x20] * max_width * 0.001f;
   }
   else if (t->data)
   {
+    if (!_htmlWidthsLoaded[t->typeface][t->style])
+      htmlLoadFontWidths(t->typeface, t->style);
+
     for (int_width = 0, ptr = t->data; *ptr != '\0'; ptr ++)
       int_width += _htmlWidths[t->typeface][t->style][(int)*ptr & 255];
 
