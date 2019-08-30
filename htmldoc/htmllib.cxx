@@ -3173,7 +3173,7 @@ compute_size(tree_t *t)		/* I - Tree entry */
 
 
   if (!_htmlInitialized)
-    htmlSetCharSet("iso-8859-1");
+    htmlSetCharSet("utf-8");
 
   if (t->markup == MARKUP_IMG)
   {

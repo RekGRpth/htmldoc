@@ -337,7 +337,7 @@ iso8859(uchar *name)			/* I - Glyph name */
     int newch;
 
     if (!_htmlInitialized)
-      htmlSetCharSet("iso-8859-1");
+      htmlSetCharSet("utf-8");
 
     if ((glyph = _htmlGlyphsAll[ch]) == NULL)
     {
