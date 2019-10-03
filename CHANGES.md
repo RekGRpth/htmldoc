@@ -1,3 +1,10 @@
+# Changes in HTMLDOC v1.9.7
+
+- Refactored the PRE rendering code to work around compiler optimization bugs
+  (Issue #349)
+- Fixed a table rowspan + valign bug (Issue #360)
+
+
 # Changes in HTMLDOC v1.9.6
 
 - Added support for data URIs (Issue #340)
