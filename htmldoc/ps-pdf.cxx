@@ -164,7 +164,7 @@ typedef struct				//// Output page info
  */
 
 static time_t	doc_time;		// Current time
-static struct tm *doc_date;		// Current date
+static struct tm doc_date;		// Current date
 
 static uchar    *current_url = NULL;
 static int	title_page;
@@ -529,7 +529,8 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
   if (!source_date_epoch || (doc_time = (time_t)strtol(source_date_epoch, NULL, 10)) <= 0)
     doc_time = time(NULL);
 
-  doc_date       = gmtime(&doc_time);
+  gmtime_r(&doc_time, &doc_date);
+
   num_headings   = 0;
   alloc_headings = 0;
   heading_pages  = NULL;
@@ -890,7 +891,7 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
 
     pspdf_debug_stats();
 
-    progress_error(HD_ERROR_NONE, "PAGES: %d", num_outpages);
+    progress_error(HD_ERROR_NONE, "PAGES: %d", (int)num_outpages);
 
     if (PSLevel > 0)
       ps_write_document(author, creator, copyright, keywords, subject, lang, out);
@@ -1685,13 +1686,13 @@ pspdf_prepare_heading(int   page,	// I - Page number
 	  else if (formatlen == 4 && strncasecmp(formatptr, "TIME", 4) == 0)
 	  {
             formatptr += 4;
-            strftime(bufptr, sizeof(buffer) - 1 - (size_t)(bufptr - buffer), "%X", doc_date);
+            strftime(bufptr, sizeof(buffer) - 1 - (size_t)(bufptr - buffer), "%X", &doc_date);
 	    bufptr += strlen(bufptr);
 	  }
 	  else if (formatlen == 4 && strncasecmp(formatptr, "DATE", 4) == 0)
 	  {
             formatptr += 4;
-            strftime(bufptr, sizeof(buffer) - 1 - (size_t)(bufptr - buffer), "%x", doc_date);
+            strftime(bufptr, sizeof(buffer) - 1 - (size_t)(bufptr - buffer), "%x", &doc_date);
 	    bufptr += strlen(bufptr);
 	  }
 	  else if (formatlen == 3 && strncasecmp(formatptr, "URL", 3) == 0)
@@ -2836,7 +2837,7 @@ pdf_write_contents(FILE   *out,			/* I - Output file */
   {
     progress_error(HD_ERROR_OUT_OF_MEMORY,
                    "Unable to allocate memory for %d headings - %s",
-                   num_headings, strerror(errno));
+                   (int)num_headings, strerror(errno));
     return;
   }
 
@@ -2844,7 +2845,7 @@ pdf_write_contents(FILE   *out,			/* I - Output file */
   {
     progress_error(HD_ERROR_OUT_OF_MEMORY,
                    "Unable to allocate memory for %d headings - %s",
-                   num_headings, strerror(errno));
+                   (int)num_headings, strerror(errno));
     free(entry_counts);
     return;
   }
@@ -2853,7 +2854,7 @@ pdf_write_contents(FILE   *out,			/* I - Output file */
   {
     progress_error(HD_ERROR_OUT_OF_MEMORY,
                    "Unable to allocate memory for %d headings - %s",
-                   num_headings, strerror(errno));
+                   (int)num_headings, strerror(errno));
     free(entry_objects);
     free(entry_counts);
     return;
@@ -3116,7 +3117,7 @@ pdf_start_object(FILE *out,	// I - File to write to
     {
       progress_error(HD_ERROR_OUT_OF_MEMORY,
                      "Unable to allocate memory for %d objects - %s",
-                     alloc_objects, strerror(errno));
+                     (int)alloc_objects, strerror(errno));
       alloc_objects -= ALLOC_OBJECTS;
       return (0);
     }
@@ -4587,7 +4588,7 @@ parse_heading(tree_t *t,	/* I - Tree to parse */
       {
         progress_error(HD_ERROR_OUT_OF_MEMORY,
                        "Unable to allocate memory for %d headings - %s",
-	               alloc_headings, strerror(errno));
+	               (int)alloc_headings, strerror(errno));
 	alloc_headings -= ALLOC_HEADINGS;
 	return;
       }
@@ -4606,7 +4607,7 @@ parse_heading(tree_t *t,	/* I - Tree to parse */
       {
         progress_error(HD_ERROR_OUT_OF_MEMORY,
                        "Unable to allocate memory for %d headings - %s",
-	               alloc_headings, strerror(errno));
+	               (int)alloc_headings, strerror(errno));
 	alloc_headings -= ALLOC_HEADINGS;
 	return;
       }
@@ -5086,6 +5087,8 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
     else
       temp = NULL;
 
+    DEBUG_printf(("    BEFORE page=%d, y=%.1f, height=%.1f, spacing=%.1f, bottom=%.1f\n", *page, *y, height, spacing, bottom));
+
     if (*y < (spacing + bottom))
     {
       (*page) ++;
@@ -5348,7 +5351,9 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
 
     *y -= spacing - height;
 
-    if (*y < (spacing + bottom))
+    DEBUG_printf(("    AFTER y=%.1f, bottom=%.1f\n", *y, bottom));
+
+    if (*y < bottom)
     {
       (*page) ++;
       *y = top;
@@ -8652,7 +8657,7 @@ new_render(int      page,		/* I - Page number (0-n) */
   {
     progress_error(HD_ERROR_INTERNAL_ERROR,
                    "Page number (%d) out of range (1...%d)\n", page + 1,
-                   alloc_pages);
+                   (int)alloc_pages);
     memset(&dummy, 0, sizeof(dummy));
     return (&dummy);
   }
@@ -8668,7 +8673,7 @@ new_render(int      page,		/* I - Page number (0-n) */
   if (r == NULL)
   {
     progress_error(HD_ERROR_OUT_OF_MEMORY,
-                   "Unable to allocate memory on page %s\n", page + 1);
+                   "Unable to allocate memory on page %d\n", (int)page + 1);
     memset(&dummy, 0, sizeof(dummy));
     return (&dummy);
   }
@@ -8771,7 +8776,7 @@ check_pages(int page)	// I - Current page
     {
       progress_error(HD_ERROR_OUT_OF_MEMORY,
                      "Unable to allocate memory for %d pages - %s",
-	             alloc_pages, strerror(errno));
+	             (int)alloc_pages, strerror(errno));
       alloc_pages -= ALLOC_PAGES;
       return;
     }
@@ -8872,7 +8877,7 @@ add_link(uchar *name,		/* I - Name of link */
       {
 	progress_error(HD_ERROR_OUT_OF_MEMORY,
                        "Unable to allocate memory for %d links - %s",
-	               alloc_links, strerror(errno));
+	               (int)alloc_links, strerror(errno));
         alloc_links -= ALLOC_LINKS;
 	return;
       }
@@ -11450,8 +11455,8 @@ write_prolog(FILE  *out,		/* I - Output file */
     fprintf(out,"%%%%LanguageLevel: %d\n", PSLevel);
     fputs("%%Creator: " HTMLDOC_PRODUCER "\n", out);
     fprintf(out, "%%%%CreationDate: D:%04d%02d%02d%02d%02d%02d+0000\n",
-            doc_date->tm_year + 1900, doc_date->tm_mon + 1, doc_date->tm_mday,
-            doc_date->tm_hour, doc_date->tm_min, doc_date->tm_sec);
+            doc_date.tm_year + 1900, doc_date.tm_mon + 1, doc_date.tm_mday,
+            doc_date.tm_hour, doc_date.tm_min, doc_date.tm_sec);
     if (doc_title != NULL)
       fprintf(out, "%%%%Title: %s\n", doc_title);
     if (author != NULL)
@@ -11834,8 +11839,8 @@ write_prolog(FILE  *out,		/* I - Output file */
     write_string(out, (uchar *)HTMLDOC_PRODUCER, 0);
     fputs("/CreationDate", out);
     snprintf(temp, sizeof(temp), "D:%04d%02d%02d%02d%02d%02d+0000",
-            doc_date->tm_year + 1900, doc_date->tm_mon + 1, doc_date->tm_mday,
-            doc_date->tm_hour, doc_date->tm_min, doc_date->tm_sec);
+            doc_date.tm_year + 1900, doc_date.tm_mon + 1, doc_date.tm_mday,
+            doc_date.tm_hour, doc_date.tm_min, doc_date.tm_sec);
     write_string(out, (uchar *)temp, 0);
 
     if (doc_title != NULL)

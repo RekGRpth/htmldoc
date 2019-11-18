@@ -1,7 +1,7 @@
 /*
  * Configuration file for HTMLDOC.
  *
- * Copyright © 2011-2018 by Michael R Sweet.
+ * Copyright © 2011-2019 by Michael R Sweet.
  * Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -46,6 +46,13 @@
 
 
 /*
+ * Microsoft "safe" functions use a different argument order than POSIX...
+ */
+
+#define gmtime_r(t,tm)	gmtime_s(tm,t)
+
+
+/*
  * Map the POSIX sleep() and usleep() functions to the Win32 Sleep() function...
  */
 
@@ -81,7 +88,7 @@ typedef long ssize_t;
  * What is the version number for this software?
  */
 
-#define SVERSION	"1.9.7"
+#define SVERSION	"1.9.8"
 
 
 /*
