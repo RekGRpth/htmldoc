@@ -767,11 +767,13 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
   {
     if (Header[pos] &&
         (strstr(Header[pos], "$IMAGE") != NULL ||
-	 strstr(Header[pos], "$HFIMAGE") != NULL))
+	 strstr(Header[pos], "$HFIMAGE") != NULL ||
+	 strstr(Header[pos], "$LETTERHEAD") != NULL))
       temp_adjust = image_adjust;
     else if (Header1[pos] &&
 	     (strstr(Header1[pos], "$IMAGE") != NULL ||
-	      strstr(Header1[pos], "$HFIMAGE") != NULL))
+	      strstr(Header1[pos], "$HFIMAGE") != NULL ||
+	      strstr(Header1[pos], "$LETTERHEAD") != NULL))
       temp_adjust = image_adjust;
     else if (Header[pos] || Header1[pos])
       temp_adjust = (float)(2 * HeadFootSize);
@@ -789,7 +791,8 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
   {
     if (Footer[pos] &&
         (strstr(Footer[pos], "$IMAGE") != NULL ||
-	 strstr(Footer[pos], "$HFIMAGE") != NULL))
+	 strstr(Footer[pos], "$HFIMAGE") != NULL ||
+	 strstr(Footer[pos], "$LETTERHEAD") != NULL))
       temp_adjust = image_adjust;
     else if (Footer[pos])
       temp_adjust = (float)(2 * HeadFootSize);
@@ -2352,13 +2355,26 @@ pdf_write_document(uchar  *author,	// I - Author of document
 
   if (CGIMode)
   {
+    const char	*meta_filename = (const char *)htmlGetMeta(doc, (uchar *)"HTMLDOC.filename");
+    const char	*filename;
+
+    if (meta_filename)
+    {
+      if ((filename = strrchr(meta_filename, '/')) != NULL)
+        filename ++;
+      else
+        filename = meta_filename;
+    }
+    else
+      filename = "htmldoc.pdf";
+
     // In CGI mode, we only produce PDF output to stdout...
     printf("Content-Type: application/pdf\r\n"
 	   "Content-Length: %ld\r\n"
-	   "Content-Disposition: inline; filename=\"htmldoc.pdf\"\r\n"
+	   "Content-Disposition: inline; filename=\"%s\"\r\n"
 	   "Accept-Ranges: none\r\n"
 	   "X-Creator: HTMLDOC " SVERSION "\r\n"
-	   "\r\n", ftell(out));
+	   "\r\n", ftell(out), filename);
   }
 
   fclose(out);
@@ -12218,20 +12234,14 @@ write_trailer(FILE  *out,		/* I - Output file */
       // Output the PageLabels tree...
       fputs("/PageLabels<</Nums[", out);
 
-      i = 0;
-
-      if (TitlePage)
+      for (i = 0; i < chapter_starts[1]; i ++)
       {
-        fputs("0<</P", out);
-	write_string(out, (uchar *)"title", 0);
-	fputs(">>", out);
-	if (PageDuplex)
-	{
-	  fputs("1<</P", out);
+        fprintf(out, "%d<</P", i);
+        if (i & 1)
 	  write_string(out, (uchar *)"eltit", 0);
-	  fputs(">>", out);
-	}
-	i += PageDuplex + 1;
+	else
+	  write_string(out, (uchar *)"title", 0);
+	fputs(">>", out);
       }
 
       if (TocLevels > 0 && OutputType == OUTPUT_BOOK)
