@@ -1,3 +1,9 @@
+# Changes in HTMLDOC v1.9.9
+
+- Fixed a UTF-8 processing bug for Markdown files (Issue #383)
+- Added support for `<FONT FACE="monospace">` (Issue #385)
+
+
 # Changes in HTMLDOC v1.9.8
 
 - Added support for a `HTMLDOC.filename` META keyword that controls the filename
