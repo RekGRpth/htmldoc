@@ -381,13 +381,6 @@ iso8859(uchar *name)			/* I - Glyph name */
 	    }
 	  }
 
-	  if (_htmlUTF8) {
-	    int unicode = _htmlUTF8++;
-	    _htmlCharacters[ch]   = (uchar)unicode;
-	    _htmlUnicode[unicode] = ch;
-	    _htmlGlyphs[unicode]  = _htmlGlyphsAll[ch];
-	  }
-
 	  // Return the new character...
 	  return ((uchar)newch);
 	}
