@@ -725,13 +725,7 @@ file_find(const char *path,		/* I - Path "dir;dir;dir" */
     }
   }
 
-  if (file_find_check(s))
-  {
-    strlcpy(filename, s, sizeof(filename));
-    return (filename);
-  }
-  else
-    return (NULL);
+  return (file_find_check(s));
 }
 
 
