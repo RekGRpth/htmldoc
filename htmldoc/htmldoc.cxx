@@ -1800,7 +1800,7 @@ load_book(const char   *filename,	// I  - Book file
   char		line[10240];		// Line from file
   const char 	*dir;			// Directory
   const char	*local;			// Local filename
-  char		path[2048+1];		// Current path
+  char		path[2048];		// Current path
 
 
   // See if the filename contains a path...
