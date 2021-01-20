@@ -66,7 +66,7 @@ extern "C" {		/* Workaround for JPEG header problems... */
  * Output options...
  */
 
-//#define HTMLDOC_ASCII85
+#define HTMLDOC_ASCII85
 //#define HTMLDOC_INTERPOLATION
 #define HTMLDOC_PRODUCER "htmldoc " SVERSION " Copyright 2011-2019 by Michael R Sweet"
 
