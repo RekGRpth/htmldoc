@@ -3210,7 +3210,7 @@ pdf_end_object(FILE *out)	// I - File to write to
 
     fseek(out, pdf_stream_length, SEEK_SET);
     fprintf(out, "%-10d", length);
-    fseek(out, 0, SEEK_END);
+    fseek(out, pdf_stream_start + length, SEEK_SET);
 
     pdf_stream_start = 0;
 
