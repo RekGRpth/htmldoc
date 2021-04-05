@@ -1325,7 +1325,7 @@ pspdf_prepare_outpages()
     chapter_outstarts[c] = num_outpages;
 
     for (i = chapter_starts[c], j = 0, nup = -1, page = pages + i;
-         i <= chapter_ends[c];
+         i <= chapter_ends[c] && num_outpages < num_pages;
 	 i ++, page ++)
     {
       if (nup != page->nup)
@@ -1411,6 +1411,8 @@ pspdf_prepare_page(int page)		/* I - Page number */
 
 
   DEBUG_printf(("pspdf_prepare_page(%d)\n", page));
+  if (page < 0 || page >= num_pages)
+    return;
 
  /*
   * Make a page number; use roman numerals for the table of contents
@@ -5743,7 +5745,7 @@ render_table_row(hdtable_t &table,
       if ((var = htmlGetVariable(cells[row][col], (uchar *)"ROWSPAN")) != NULL)
         table.row_spans[col] = atoi((char *)var);
 
-      if (table.row_spans[col] == 1)
+      if (table.row_spans[col] <= 1)
         table.row_spans[col] = 0;
 
       if (table.row_spans[col] > (table.num_rows - row))
@@ -6067,7 +6069,7 @@ render_table_row(hdtable_t &table,
 
   // Update all current columns with ROWSPAN <= rowspan to use the same
   // end page and row...
-  for (col = 0, temp_page = -1, temp_y = 99999999; col < table.num_cols; col ++)
+  for (col = 0, temp_page = -1, temp_y = 99999999.0f; col < table.num_cols; col ++)
     if (table.row_spans[col] <= rowspan &&
         cells[row][col] != NULL && cells[row][col]->child != NULL)
     {
@@ -6387,6 +6389,9 @@ parse_table(tree_t *t,			// I - Tree to parse
       table_width = (float)(atof((char *)var) * (right - left) / 100.0f);
     else
       table_width = (float)(atoi((char *)var) * PagePrintWidth / _htmlBrowserWidth);
+
+    if (table_width < 0.0f || table_width > PagePrintWidth)
+      table_width = right - left;
   }
   else
     table_width = right - left;
@@ -6404,19 +6409,31 @@ parse_table(tree_t *t,			// I - Tree to parse
   DEBUG_printf(("table_width = %.1f\n", table_width));
 
   if ((var = htmlGetVariable(t, (uchar *)"CELLPADDING")) != NULL)
-    table.cellpadding = atoi((char *)var);
+  {
+    if ((table.cellpadding = atoi((char *)var)) < 0.0f)
+      table.cellpadding = 0.0f;
+    else if (table.cellpadding > 20.0f)
+      table.cellpadding = 20.0f;
+  }
   else
     table.cellpadding = 1.0f;
 
   if ((var = htmlGetVariable(t, (uchar *)"CELLSPACING")) != NULL)
-    cellspacing = atoi((char *)var);
+  {
+    if ((cellspacing = atoi((char *)var)) < 0.0f)
+      cellspacing = 0.0f;
+    else if (cellspacing > 20.0f)
+      cellspacing = 20.0f;
+  }
   else
     cellspacing = 0.0f;
 
   if ((var = htmlGetVariable(t, (uchar *)"BORDER")) != NULL)
   {
-    if ((table.border = (float)atof((char *)var)) == 0.0 && var[0] != '0')
+    if ((table.border = (float)atof((char *)var)) <= 0.0 && var[0] != '0')
       table.border = 1.0f;
+    else if (table.border > 20.0f)
+      table.border = 20.0f;
 
     table.cellpadding += table.border;
   }
@@ -6446,7 +6463,7 @@ parse_table(tree_t *t,			// I - Tree to parse
 
   table.border_size = table.border - 1.0f;
 
-  cellspacing *= PagePrintWidth / _htmlBrowserWidth;
+  cellspacing       *= PagePrintWidth / _htmlBrowserWidth;
   table.cellpadding *= PagePrintWidth / _htmlBrowserWidth;
   table.border      *= PagePrintWidth / _htmlBrowserWidth;
   table.border_size *= PagePrintWidth / _htmlBrowserWidth;
@@ -6563,7 +6580,12 @@ parse_table(tree_t *t,			// I - Tree to parse
         {
 	  // Handle colspan and rowspan stuff...
           if ((var = htmlGetVariable(tempcol, (uchar *)"COLSPAN")) != NULL)
-            colspan = atoi((char *)var);
+          {
+            if ((colspan = atoi((char *)var)) < 1)
+              colspan = 1;
+            else if (colspan > (MAX_COLUMNS - col))
+              colspan = MAX_COLUMNS - col;
+          }
           else
             colspan = 1;
 
@@ -6571,7 +6593,7 @@ parse_table(tree_t *t,			// I - Tree to parse
 	  {
             table.row_spans[col] = atoi((char *)var);
 
-	    if (table.row_spans[col] == 1)
+	    if (table.row_spans[col] <= 1)
 	      table.row_spans[col] = 0;
 
 	    for (tcol = 1; tcol < colspan; tcol ++)
@@ -6593,6 +6615,11 @@ parse_table(tree_t *t,			// I - Tree to parse
 	    {
               col_width -= 2.0 * table.cellpadding;
 	    }
+
+	    if (col_width <= 0.0f)
+	      col_width = 0.0f;
+	    else if (col_width > PageWidth)
+	      col_width = PageWidth;
 	  }
 	  else
 	    col_width = 0.0f;
@@ -12276,6 +12303,9 @@ write_trailer(FILE  *out,		/* I - Output file */
 
       for (j = 1; j <= TocDocCount; j ++)
       {
+        if (chapter_starts[j] < 0)
+          continue;
+
         page  = pages + chapter_starts[j];
 	start = chapter_starts[j] - chapter_starts[1] + 1;
 	type  = 'D';

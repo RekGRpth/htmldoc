@@ -86,6 +86,10 @@ AC_PATH_PROG(MKDIR,mkdir)
 AC_PATH_PROG(RM,rm)
 AC_PATH_TOOL(PKGCONFIG, pkg-config)
 
+AS_IF([test x$PKGCONFIG = x], [
+    AC_MSG_ERROR([pkg-config is required for library checks.])
+])
+
 dnl See whether we need a .exe extension on executables...
 AC_EXEEXT
 
@@ -236,91 +240,59 @@ AC_SUBST(SSLFLAGS)
 AC_SUBST(SSLLIBS)
 
 dnl Check for GUI libraries...
+have_fltk=no
 POST=:
 AS_IF([test "x$with_gui" != xno], [
     AS_IF([test "x$FLTKCONFIG" != x], [
-	LIBS="$LIBS `$FLTKCONFIG --use-images --ldflags`"
-	AC_DEFINE(HAVE_LIBFLTK)
+        have_fltk=yes
+	CPPFLAGS="$CPPFLAGS $($FLTKCONFIG --use-images --cflags)"
+	LIBS="$LIBS $($FLTKCONFIG --use-images --ldflags)"
+	AC_DEFINE([HAVE_LIBFLTK], [1], [Do we have the FLTK library?])
+	AC_DEFINE([HAVE_LIBJPEG], 1, [Have JPEG library?])
+	AC_DEFINE([HAVE_LIBPNG], 1, [Have PNG library?])
 	POST="$FLTKCONFIG --post"
 
 	AC_CHECK_LIB(Xpm,XpmCreatePixmapFromData)
 	AC_CHECK_LIB(X11,XCreateBitmapFromData)
     ], [
-        AC_MSG_WARN([FLTK not available so no GUI will be built.])
+        AS_IF([test "x$with_gui" = xyes], [
+	    AC_MSG_ERROR([FLTK not available.])
+	], [
+	    AC_MSG_WARN([FLTK not available so no GUI will be built.])
+	])
     ])
 ])
 
 AC_SUBST(POST)
 
 dnl Check for image libraries...
-NEWLIBS=""
-
-AC_ARG_ENABLE(localjpeg, AS_HELP_STRING([--enable-localjpeg], [use local JPEG library, default=auto]))
-AS_IF([test x$enable_localjpeg = xyes], [
-    AC_MSG_CHECKING([for library containing jpeg_CreateCompress])
-    AC_MSG_RESULT([local libjpeg])
-    JPEGINC="-I../jpeg"
-    JPEG="jpeg"
-    NEWLIBS="../jpeg/libjpeg.a $NEWLIBS"
-], [
-    AC_SEARCH_LIBS(jpeg_CreateCompress, turbojpeg jpeg, [
-	JPEGINC=""
-	JPEG=""
+AS_IF([test "x$PKGCONFIG" != x], [
+    AC_MSG_CHECKING([for libjpeg])
+    AS_IF([$PKGCONFIG --exists libjpeg], [
+	AC_MSG_RESULT([yes]);
+	AC_DEFINE([HAVE_LIBJPEG], 1, [Have JPEG library?])
+	CPPFLAGS="$CPPFLAGS $($PKGCONFIG --cflags libjpeg)"
+	LIBS="$LIBS $($PKGCONFIG --libs libjpeg)"
     ], [
-	JPEGINC="-I../jpeg"
-	JPEG="jpeg"
-	NEWLIBS="../jpeg/libjpeg.a $NEWLIBS"
+	AC_MSG_RESULT([no]);
     ])
 ])
 
-AC_ARG_ENABLE(localzlib, AS_HELP_STRING([--enable-localzlib], [use local ZLIB library, default=auto]))
-AS_IF([test x$enable_localzlib = xyes], [
-    AC_MSG_CHECKING([for library containing gzgets])
-    AC_MSG_RESULT([local libz])
-    ZLIBINC="-I../zlib"
-    ZLIB="zlib"
-    NEWLIBS="../zlib/libz.a $NEWLIBS"
+AC_SEARCH_LIBS([gzgets], [z], [
+    LIBS="$LIBS -lz"
 ], [
-    AC_SEARCH_LIBS(gzgets,z, [
-	ZLIBINC=""
-	ZLIB=""
-    ], [
-	ZLIBINC="-I../zlib"
-	ZLIB="zlib"
-	NEWLIBS="../zlib/libz.a $NEWLIBS"
-    ])
+    AC_MSG_ERROR([HTMLDOC requires zlib.])
 ])
 
-AC_ARG_ENABLE(localpng, AS_HELP_STRING([--enable-localpng] ,[use local PNG library, default=auto]))
-AS_IF([test x$enable_localpng = xyes], [
-    AC_MSG_CHECKING([for library containing png_set_tRNS_to_alpha])
-    AC_MSG_RESULT([local libpng])
-    PNGINC="-I../png"
-    PNG="png"
-    NEWLIBS="../png/libpng.a $NEWLIBS"
+AC_MSG_CHECKING([for libpng-1.6.x])
+AS_IF([$PKGCONFIG --exists libpng16], [
+    AC_MSG_RESULT([yes]);
+    AC_DEFINE([HAVE_LIBPNG], 1, [Have PNG library?])
+    CPPFLAGS="$CPPFLAGS $($PKGCONFIG --cflags libpng16)"
+    LIBS="$($PKGCONFIG --libs libpng16) $LIBS"
 ], [
-    AC_SEARCH_LIBS(png_set_tRNS_to_alpha,png, [
-	PNGINC=""
-	PNG=""
-    ], [
-	PNGINC="-I../png"
-	PNG="png"
-	NEWLIBS="../png/libpng.a $NEWLIBS"
-    ])
+    AC_MSG_RESULT([no]);
 ])
-
-AC_SUBST(JPEG)
-AC_SUBST(JPEGINC)
-AC_SUBST(PNG)
-AC_SUBST(PNGINC)
-AC_SUBST(ZLIB)
-AC_SUBST(ZLIBINC)
-
-AC_DEFINE(HAVE_LIBJPEG)
-AC_DEFINE(HAVE_LIBPNG)
-AC_DEFINE(HAVE_LIBZ)
-
-LIBS="$NEWLIBS $LIBS"
 
 dnl Directories for config.h...
 AS_IF([test "$prefix" = "NONE"], [
@@ -383,7 +355,7 @@ AS_IF([test -n "$GXX"], [
 
     dnl Drop some not-useful/unreliable warnings...
     AC_LANG_PUSH(C++)
-    for warning in char-subscripts format-truncation format-y2k switch unused-result; do
+    for warning in char-subscripts deprecated-declarations format-truncation format-y2k switch unused-result; do
 	AC_MSG_CHECKING([whether compiler supports -Wno-$warning])
 	OLDCXXFLAGS="$CXXFLAGS"
 	CXXFLAGS="$CXXFLAGS -Wno-$warning -Werror"
@@ -427,7 +399,7 @@ AS_IF([test -n "$GXX"], [
     CFLAGS="$OLDCFLAGS"
 
     dnl OS-specific options...
-    AS_IF([test "$host_os_name" = darwin], [
+    AS_IF([test "$host_os_name" = darwin -a x$enable_debug != xyes], [
         OPTIM="$OPTIM -mmacosx-version-min=10.14 -arch x86_64 -arch arm64e"
     ])
 ])
@@ -441,3 +413,8 @@ AS_IF([test "x$with_gui" != xno], [
 dnl Generate the top-level Makefile and Makedefs file...
 AC_CONFIG_FILES([Makedefs Makefile desktop/htmldoc.plist])
 AC_OUTPUT
+
+AC_MSG_NOTICE([Using CPPFLAGS=$CPPFLAGS])
+AC_MSG_NOTICE([Using CXXFLAGS=$CXXFLAGS])
+AC_MSG_NOTICE([Using LDFLAGS=$LDFLAGS])
+AC_MSG_NOTICE([Using LIBS=$LIBS])
