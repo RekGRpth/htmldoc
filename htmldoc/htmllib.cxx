@@ -1,7 +1,7 @@
 /*
  * HTML parsing routines for HTMLDOC, a HTML document processing program.
  *
- * Copyright 2011-2020 by Michael R Sweet.
+ * Copyright 2011-2021 by Michael R Sweet.
  * Copyright 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -1585,7 +1585,7 @@ write_file(tree_t *t,		/* I - Tree entry */
         for (ptr = t->data; *ptr != '\0'; ptr ++)
           fputs((char *)iso8859(*ptr), fp);
 
-	if (t->data[strlen((char *)t->data) - 1] == '\n')
+	if (t->data[0] && t->data[strlen((char *)t->data) - 1] == '\n')
           col = 0;
 	else
           col += strlen((char *)t->data);
@@ -2096,11 +2096,11 @@ htmlGetText(tree_t *t)		/* I - Tree to pick */
     else
       tdata = t->data;
 
-    if (tdata != NULL)
+    tlen = tdata ? strlen((char *)tdata) : 0;
+
+    if (tdata != NULL && tlen > 0)
     {
       // Add the text to this string...
-      tlen = strlen((char *)tdata);
-
       if (s)
         s2 = (uchar *)realloc(s, 1 + slen + tlen);
       else
@@ -2114,12 +2114,12 @@ htmlGetText(tree_t *t)		/* I - Tree to pick */
       memcpy((char *)s + slen, (char *)tdata, tlen);
 
       slen += tlen;
+    }
 
-      if (talloc)
-      {
-	free(talloc);
-	talloc = NULL;
-      }
+    if (talloc)
+    {
+      free(talloc);
+      talloc = NULL;
     }
 
     t = t->next;
