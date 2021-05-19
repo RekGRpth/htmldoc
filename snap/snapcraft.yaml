@@ -1,4 +1,5 @@
 name: htmldoc
+base: core18
 version: 1.9.12
 summary: HTML and Markdown conversion utility
 description: |
@@ -16,14 +17,14 @@ icon: desktop/htmldoc-128.png
 
 apps:
     htmldoc:
-        command: desktop-launch $SNAP/bin/htmldoc
+        extensions: [gnome-3-34]
+        command: bin/htmldoc
         desktop: share/applications/htmldoc.desktop
-        plugs: [home, network, x11]
+        plugs: [desktop, home, network, x11]
 
 parts:
     main:
         plugin: autotools
         source: .
-        after: [desktop-gtk3]
-
-build-packages: [libfltk1.3-dev]
+        build-packages: [build-essential, pkg-config, libfltk1.3-dev, libgnutls28-dev, libjpeg-turbo8-dev, libpng-dev, zlib1g-dev]
+        stage-packages: [libfltk-images1.3, libfltk1.3, libfontconfig1, libfreetype6, libjpeg-turbo8, libpng16-16, libx11-6, libxau6, libxcb1, libxcursor1, libxdmcp6, libxext6, libxfixes3, libxft2, libxinerama1, libxrender1]
