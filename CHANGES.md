@@ -1,3 +1,10 @@
+# Changes in HTMLDOC v1.9.13
+
+- Now install a 32x32 icon for Linux (Issue #432)
+- Fixed an issue with large values for roman numerals and letters in headings
+  (Issue #433)
+
+
 # Changes in HTMLDOC v1.9.12
 
 - Fixed a crash bug with "data:" URIs and EPUB output (Issue #410)
