@@ -164,22 +164,22 @@ uchar		_htmlSortedChars[256];	/* Sorted character indices */
 const char	*_htmlFonts[TYPE_MAX][STYLE_MAX] =
 		{
 		  {
-		    "Mono-Regular",
-		    "Mono-Bold",
-		    "Mono-Italic",
-		    "Mono-BoldItalic"
+		    "NimbusMonoPS-Regular",
+		    "NimbusMonoPS-Bold",
+		    "NimbusMonoPS-Italic",
+		    "NimbusMonoPS-BoldItalic"
 		  },
 		  {
-		    "Serif-Regular",
-		    "Serif-Bold",
-		    "Serif-Italic",
-		    "Serif-BoldItalic"
+		    "NimbusRoman-Regular",
+		    "NimbusRoman-Bold",
+		    "NimbusRoman-Italic",
+		    "NimbusRoman-BoldItalic"
 		  },
 		  {
-		    "Sans-Regular",
-		    "Sans-Bold",
-		    "Sans-Italic",
-		    "Sans-BoldItalic"
+		    "NimbusSans-Regular",
+		    "NimbusSans-Bold",
+		    "NimbusSans-Italic",
+		    "NimbusSans-BoldItalic"
 		  },
 		  {
 		    "Symbol",

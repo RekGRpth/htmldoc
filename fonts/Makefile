@@ -21,18 +21,18 @@ include ../Makedefs
 
 FONTS	=	\
 		Dingbats \
-		Mono-Bold \
-		Mono-BoldItalic \
-		Mono-Italic \
-		Mono-Regular \
-		Sans-Bold \
-		Sans-BoldItalic \
-		Sans-Italic \
-		Sans-Regular \
-		Serif-Bold \
-		Serif-BoldItalic \
-		Serif-Italic \
-		Serif-Regular \
+		NimbusMonoPS-Bold \
+		NimbusMonoPS-BoldItalic \
+		NimbusMonoPS-Italic \
+		NimbusMonoPS-Regular \
+		NimbusSans-Bold \
+		NimbusSans-BoldItalic \
+		NimbusSans-Italic \
+		NimbusSans-Regular \
+		NimbusRoman-Bold \
+		NimbusRoman-BoldItalic \
+		NimbusRoman-Italic \
+		NimbusRoman-Regular \
 		Symbol
 
 
