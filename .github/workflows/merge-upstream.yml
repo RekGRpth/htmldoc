@@ -11,4 +11,4 @@ jobs:
           fetch-depth: 0
       - uses: exions/merge-upstream@v1
         with:
-          upstream: gost-engine/engine
+          upstream: michaelrsweet/htmldoc
