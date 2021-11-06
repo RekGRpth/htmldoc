@@ -919,12 +919,16 @@ image_load_bmp(image_t *img,	/* I - Image to load into */
     return (-1);
 
   if (info_size > 40)
+  {
     for (info_size -= 40; info_size > 0; info_size --)
       getc(fp);
+  }
 
   // Get colormap...
   if (colors_used == 0 && depth <= 8)
     colors_used = 1 << depth;
+  else if (colors_used > 256)
+    return (-1);
 
   fread(colormap, (size_t)colors_used, 4, fp);
 
@@ -1341,6 +1345,10 @@ image_load_gif(image_t *img,	/* I - Image pointer */
           img->width  = (buf[5] << 8) | buf[4];
           img->height = (buf[7] << 8) | buf[6];
           img->depth  = gray ? 1 : 3;
+
+	  if (img->width <= 0 || img->width > 32767 || img->height <= 0 || img->height > 32767)
+	    return (-1);
+
 	  if (!load_data)
 	    return (0);
 
