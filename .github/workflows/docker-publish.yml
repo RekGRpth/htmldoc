@@ -17,4 +17,4 @@ jobs:
     strategy:
       matrix:
         repo:
-          - pdf.docker
+          - lib.docker
