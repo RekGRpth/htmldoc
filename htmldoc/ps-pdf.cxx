@@ -5515,9 +5515,7 @@ parse_pre(tree_t *t,		/* I - Tree to parse */
       if (flat->height > height)
         height = flat->height;
 
-      if (flat->markup == MARKUP_BR ||
-          (flat->markup == MARKUP_NONE && flat->data &&
-	   flat->data[strlen((char *)flat->data) - 1] == '\n'))
+      if (flat->markup == MARKUP_BR || (flat->markup == MARKUP_NONE && flat->data && flat->data[0] && flat->data[strlen((char *)flat->data) - 1] == '\n'))
         break;
     }
 
@@ -5961,7 +5959,7 @@ render_table_row(hdtable_t &table,
 	      break;
     }
 
-    if (height_var != NULL)
+    if (height_var != NULL && *height_var)
     {
       // Hardcode the row height...
       if (height_var[strlen((char *)height_var) - 1] == '%')
@@ -6403,7 +6401,7 @@ parse_table(tree_t *t,			// I - Tree to parse
 
   cells = NULL;
 
-  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL)
+  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL && *var)
   {
     if (var[strlen((char *)var) - 1] == '%')
       table_width = (float)(atof((char *)var) * (right - left) / 100.0f);
@@ -6416,7 +6414,7 @@ parse_table(tree_t *t,			// I - Tree to parse
   else
     table_width = right - left;
 
-  if ((var = htmlGetVariable(t, (uchar *)"HEIGHT")) != NULL)
+  if ((var = htmlGetVariable(t, (uchar *)"HEIGHT")) != NULL && *var)
   {
     if (var[strlen((char *)var) - 1] == '%')
       table.height = (float)(atof((char *)var) * (top - bottom) / 100.0f);
@@ -6622,7 +6620,7 @@ parse_table(tree_t *t,			// I - Tree to parse
 
           // Compute the cell size...
           col_width = get_cell_size(tempcol, 0.0f, table_width, &col_min, &col_pref, &col_height);
-          if ((var = htmlGetVariable(tempcol, (uchar *)"WIDTH")) != NULL)
+          if ((var = htmlGetVariable(tempcol, (uchar *)"WIDTH")) != NULL && *var)
 	  {
 	    if (var[strlen((char *)var) - 1] == '%')
 	    {
@@ -6732,7 +6730,7 @@ parse_table(tree_t *t,			// I - Tree to parse
   * Now figure out the width of the table...
   */
 
-  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL)
+  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL && *var)
   {
     if (var[strlen((char *)var) - 1] == '%')
       width = (float)(atof((char *)var) * (right - left) / 100.0f);
@@ -7078,7 +7076,7 @@ parse_table(tree_t *t,			// I - Tree to parse
     if (height_var != NULL && row == header_row)
       header_height_var = height_var;
 
-    if (cells[row][0] != NULL && height_var != NULL)
+    if (cells[row][0] != NULL && height_var != NULL && *height_var)
     {
       // Row height specified; make sure it'll fit...
       if (height_var[strlen((char *)height_var) - 1] == '%')
@@ -9072,8 +9070,7 @@ get_cell_size(tree_t *t,		// I - Cell
                 (void *)t, left, right, (void *)minwidth, (void *)prefwidth, (void *)minheight));
 
   // First see if the width has been specified for this cell...
-  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL &&
-      (var[strlen((char *)var) - 1] != '%' || (right - left) > 0.0f))
+  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL && *var && (var[strlen((char *)var) - 1] != '%' || (right - left) > 0.0f))
   {
     // Yes, use it!
     if (var[strlen((char *)var) - 1] == '%')
@@ -9180,8 +9177,7 @@ get_cell_size(tree_t *t,		// I - Cell
 	    minw = temp->width;
 	  }
 
-          if (temp->preformatted && temp->data != NULL &&
-              temp->data[strlen((char *)temp->data) - 1] == '\n')
+          if (temp->preformatted && temp->data != NULL && temp->data[0] && temp->data[strlen((char *)temp->data) - 1] == '\n')
           {
 	    // End of a line - check preferred width...
 	    frag_pref += temp->width + 1;
@@ -9211,8 +9207,7 @@ get_cell_size(tree_t *t,		// I - Cell
 	  else
 	    frag_pref += temp->width;
 
-          if (temp->preformatted && temp->data != NULL &&
-              temp->data[strlen((char *)temp->data) - 1] == '\n')
+          if (temp->preformatted && temp->data != NULL && temp->data[0] &&  temp->data[strlen((char *)temp->data) - 1] == '\n')
 	  {
 	    // Check required width...
             frag_width += temp->width + 1;
@@ -9226,9 +9221,7 @@ get_cell_size(tree_t *t,		// I - Cell
 
             frag_width = 0.0f;
 	  }
-          else if (!temp->preformatted && temp->data != NULL &&
-	           (isspace(temp->data[0]) ||
-	 	    (temp->data[0] && isspace(temp->data[strlen((char *)temp->data) - 1]))))
+          else if (!temp->preformatted && temp->data != NULL && temp->data[0] && (isspace(temp->data[0]) || (temp->data[0] && isspace(temp->data[strlen((char *)temp->data) - 1]))))
 	  {
 	    // Check required width...
 	    if (isspace(temp->data[0]))
@@ -9403,8 +9396,7 @@ get_table_size(tree_t *t,		// I - Table
                 (void *)t, left, right, (void *)minwidth, (void *)prefwidth, (void *)minheight));
 
   // First see if the width has been specified for this table...
-  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL &&
-      (var[strlen((char *)var) - 1] != '%' || (right - left) > 0.0f))
+  if ((var = htmlGetVariable(t, (uchar *)"WIDTH")) != NULL && *var && (var[strlen((char *)var) - 1] != '%' || (right - left) > 0.0f))
   {
     // Yes, use it!
     if (var[strlen((char *)var) - 1] == '%')
@@ -9419,7 +9411,7 @@ get_table_size(tree_t *t,		// I - Table
   prefw = 0.0f;
 
   // Then the height...
-  if ((var = htmlGetVariable(t, (uchar *)"HEIGHT")) != NULL)
+  if ((var = htmlGetVariable(t, (uchar *)"HEIGHT")) != NULL && *var)
   {
     // Yes, use it!
     if (var[strlen((char *)var) - 1] == '%')
@@ -9705,7 +9697,7 @@ update_image_size(tree_t *t)	/* I - Tree entry */
   width  = htmlGetVariable(t, (uchar *)"WIDTH");
   height = htmlGetVariable(t, (uchar *)"HEIGHT");
 
-  if (width != NULL && height != NULL)
+  if (width != NULL && *width && height != NULL && *height)
   {
     if (width[strlen((char *)width) - 1] == '%')
       t->width = (float)(atof((char *)width) * PagePrintWidth / 100.0f);
@@ -9725,7 +9717,7 @@ update_image_size(tree_t *t)	/* I - Tree entry */
   if (img == NULL)
     return;
 
-  if (width != NULL)
+  if (width != NULL && *width)
   {
     if (width[strlen((char *)width) - 1] == '%')
       t->width = (float)(atof((char *)width) * PagePrintWidth / 100.0f);
@@ -9734,7 +9726,7 @@ update_image_size(tree_t *t)	/* I - Tree entry */
 
     t->height = t->width * img->height / img->width;
   }
-  else if (height != NULL)
+  else if (height != NULL && *height)
   {
     if (height[strlen((char *)height) - 1] == '%')
       t->height = (float)(atof((char *)height) * PagePrintWidth / 100.0f);
@@ -12500,7 +12492,7 @@ write_type1(FILE       *out,		/* I - File to write to */
     while (fgets(line, sizeof(line), fp) != NULL)
       fputs(line, out);
 
-    if (line[strlen(line) - 1] != '\n')
+    if (line[0] && line[strlen(line) - 1] != '\n')
       fputs("\n", out);
 
     fputs("%%EndResource\n", out);
