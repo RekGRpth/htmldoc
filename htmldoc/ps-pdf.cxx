@@ -2987,15 +2987,17 @@ pdf_write_contents(FILE   *out,			/* I - Output file */
       free(text);
     }
 
-    i = heading_pages[*heading];
-    x = 0.0f;
-    y = heading_tops[*heading] + pages[i].bottom;
-    pspdf_transform_coords(pages + i, x, y);
+    if (*heading < (int)num_headings)
+    {
+      i = heading_pages[*heading];
+      x = 0.0f;
+      y = heading_tops[*heading] + pages[i].bottom;
+      pspdf_transform_coords(pages + i, x, y);
 
-    fprintf(out, "/Dest[%d 0 R/XYZ %.0f %.0f 0]",
-            pages_object + 2 * pages[i].outpage + 1, x, y);
+      fprintf(out, "/Dest[%d 0 R/XYZ %.0f %.0f 0]", pages_object + 2 * pages[i].outpage + 1, x, y);
 
-    (*heading) ++;
+      (*heading) ++;
+    }
   }
 
   if (prev > 0)
@@ -3917,7 +3919,7 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
 	    {
 	      pages[*page].chapter = htmlGetText(t->child->child);
 
-              for (int i = *page + 1; i < num_pages; i ++)
+              for (int i = *page + 1; i < (int)num_pages; i ++)
                 pages[i].chapter = pages[*page].chapter;
             }
 
@@ -3925,7 +3927,7 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
 	    {
 	      pages[*page].heading = htmlGetText(t->child->child);
 
-              for (int i = *page + 1; i < num_pages; i ++)
+              for (int i = *page + 1; i < (int)num_pages; i ++)
                 pages[i].heading = pages[*page].heading;
 	    }
 
@@ -4616,7 +4618,7 @@ parse_heading(tree_t *t,	/* I - Tree to parse */
   {
     pages[*page].chapter = htmlGetText(current_heading);
 
-    for (int i = *page + 1; i < num_pages; i ++)
+    for (int i = *page + 1; i < (int)num_pages; i ++)
       pages[i].chapter = pages[*page].chapter;
   }
 
@@ -4627,7 +4629,7 @@ parse_heading(tree_t *t,	/* I - Tree to parse */
     pages[*page].heading  = htmlGetText(current_heading);
     pages[*page].headnode = current_heading;
 
-    for (int i = *page + 1; i < num_pages; i ++)
+    for (int i = *page + 1; i < (int)num_pages; i ++)
     {
       pages[i].heading  = pages[*page].heading;
       pages[i].headnode = current_heading;
