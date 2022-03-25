@@ -3085,6 +3085,8 @@ pdf_write_files(FILE   *out,		// I - Output file
 
       if ((link = find_link(htmlGetVariable(temp, (uchar *)"_HD_FILENAME"))) != NULL)
       {
+        check_pages(link->page);
+
 	x = 0.0f;
 	y = link->top + pages[link->page].bottom;
 	pspdf_transform_coords(pages + link->page, x, y);
@@ -3416,6 +3418,8 @@ pdf_write_links(FILE *out)		/* I - Output file */
 
             fputs("/Border[0 0 0]", out);
 
+            check_pages(link->page);
+
             x1 = 0.0f;
 	    y1 = link->top + pages[link->page].bottom;
             pspdf_transform_coords(pages + link->page, x1, y1);
@@ -3592,6 +3596,8 @@ pdf_write_names(FILE *out)		/* I - Output file */
   {
     pdf_start_object(out);
     float x, y;
+
+    check_pages(link->page);
 
     x = 0.0f;
     y = link->top + pages[link->page].bottom;
@@ -6139,6 +6145,7 @@ render_table_row(hdtable_t &table,
       // Draw background on multiple pages...
 
       // Bottom of first page...
+      check_pages(*page);
       new_render(*page, RENDER_BOX, table.border_left, bottom,
                  width, row_starty - bottom + table.cellpadding, bgrgb,
                  pages[*page].start);
@@ -6146,13 +6153,13 @@ render_table_row(hdtable_t &table,
       // Intervening pages...
       for (temp_page = *page + 1; temp_page < row_page; temp_page ++)
       {
+	check_pages(temp_page);
         new_render(temp_page, RENDER_BOX, table.border_left, bottom,
                    width, top - bottom, bgrgb, pages[temp_page].start);
       }
 
       // Top of last page...
-      check_pages(*page);
-
+      check_pages(row_page);
       new_render(row_page, RENDER_BOX, table.border_left, row_y,
                  width, top - row_y, bgrgb,
                  pages[row_page].start);
@@ -6160,6 +6167,7 @@ render_table_row(hdtable_t &table,
     else
     {
       // Draw background in row...
+      check_pages(row_page);
       new_render(row_page, RENDER_BOX, table.border_left, row_y,
                  width, row_height + 2 * table.cellpadding, bgrgb,
                  pages[row_page].start);
@@ -6254,9 +6262,12 @@ render_table_row(hdtable_t &table,
         }
 
         if (bgcolor != NULL)
+        {
+          check_pages(temp_page);
           new_render(temp_page, RENDER_BOX, table.border_left, bottom,
                      width + table.border, top - bottom, bgrgb,
                      pages[temp_page].start);
+	}
       }
 
       if (table.border > 0.0f)
@@ -6281,7 +6292,6 @@ render_table_row(hdtable_t &table,
       if (bgcolor != NULL)
       {
         check_pages(table.cell_endpage[col]);
-
         new_render(table.cell_endpage[col], RENDER_BOX, table.border_left, row_y,
                    width + table.border, top - row_y, bgrgb,
                    pages[table.cell_endpage[col]].start);

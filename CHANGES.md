@@ -1,6 +1,8 @@
 # Changes in HTMLDOC v1.9.16
 
 - Fixed a potential image overflow bug with JPEG and PNG images (Issue #471)
+- Fixed potential heap overflow bugs with pages (Issue #477, Issue #478,
+  Issue #480)
 - Fixed some minor Coverity warnings.
 - Updated the GUI interface for current display fonts.
 
