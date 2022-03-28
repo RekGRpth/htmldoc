@@ -3384,6 +3384,7 @@ pdf_write_links(FILE *out)		/* I - Output file */
       p = pages + op->pages[i];
 
       for (r = p->start; r != NULL; r = r->next)
+      {
 	if (r->type == RENDER_LINK)
 	{
           if ((link = find_link(r->data.link)) != NULL)
@@ -3391,42 +3392,43 @@ pdf_write_links(FILE *out)		/* I - Output file */
 	   /*
             * Local link...
             */
-	    float x1, y1, x2, y2;
+            if (link->page < num_pages)
+            {
+	      float x1, y1, x2, y2;
 
-            lobjs[num_lobjs ++] = pdf_start_object(out);
+	      lobjs[num_lobjs ++] = pdf_start_object(out);
 
-            fputs("/Subtype/Link", out);
+	      fputs("/Subtype/Link", out);
 
-            if (PageDuplex && (op->pages[i] & 1))
-	    {
-              x1 = r->x + p->right;
-	      y1 = r->y + p->bottom - 2;
-              x2 = r->x + r->width + p->right;
-	      y2 = r->y + r->height + p->bottom;
+	      if (PageDuplex && (op->pages[i] & 1))
+	      {
+		x1 = r->x + p->right;
+		y1 = r->y + p->bottom - 2;
+		x2 = r->x + r->width + p->right;
+		y2 = r->y + r->height + p->bottom;
+	      }
+	      else
+	      {
+		x1 = r->x + p->left;
+		y1 = r->y + p->bottom - 2;
+		x2 = r->x + r->width + p->left;
+		y2 = r->y + r->height + p->bottom;
+	      }
+
+	      pspdf_transform_coords(p, x1, y1);
+	      pspdf_transform_coords(p, x2, y2);
+	      fprintf(out, "/Rect[%.1f %.1f %.1f %.1f]", x1, y1, x2, y2);
+
+	      fputs("/Border[0 0 0]", out);
+
+	      x1 = 0.0f;
+	      y1 = link->top + pages[link->page].bottom;
+	      pspdf_transform_coords(pages + link->page, x1, y1);
+	      fprintf(out, "/Dest[%d 0 R/XYZ %.0f %.0f 0]",
+		      pages_object + 2 * pages[link->page].outpage + 1,
+		      x1, y1);
+	      pdf_end_object(out);
 	    }
-            else
-	    {
-              x1 = r->x + p->left;
-	      y1 = r->y + p->bottom - 2;
-              x2 = r->x + r->width + p->left;
-	      y2 = r->y + r->height + p->bottom;
-	    }
-
-            pspdf_transform_coords(p, x1, y1);
-            pspdf_transform_coords(p, x2, y2);
-            fprintf(out, "/Rect[%.1f %.1f %.1f %.1f]", x1, y1, x2, y2);
-
-            fputs("/Border[0 0 0]", out);
-
-            check_pages(link->page);
-
-            x1 = 0.0f;
-	    y1 = link->top + pages[link->page].bottom;
-            pspdf_transform_coords(pages + link->page, x1, y1);
-	    fprintf(out, "/Dest[%d 0 R/XYZ %.0f %.0f 0]",
-        	    pages_object + 2 * pages[link->page].outpage + 1,
-        	    x1, y1);
-	    pdf_end_object(out);
 	  }
 	  else
 	  {
@@ -3517,6 +3519,7 @@ pdf_write_links(FILE *out)		/* I - Output file */
             pdf_end_object(out);
 	  }
 	}
+      }
     }
 
     if (num_lobjs > 0)
@@ -4886,6 +4889,9 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
         else
           flat = temp->next;
 
+        if (temp->next != NULL)
+          temp->next->prev = prev;
+
         free(temp);
         temp = prev;
       }
@@ -4966,6 +4972,9 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
           prev->next = temp->next;
         else
           flat = temp->next;
+
+        if (temp->next != NULL)
+          temp->next->prev = prev;
 
         free(temp);
         temp = prev;
@@ -5208,7 +5217,7 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
 
       case ALIGN_JUSTIFY :
           linex = image_left;
-	  if (flat != NULL && flat->prev->markup != MARKUP_BR && num_chars > 1)
+	  if (flat != NULL && flat->prev && flat->prev->markup != MARKUP_BR && num_chars > 1)
 	    char_spacing = (format_width - width) / (num_chars - 1);
 	  break;
     }
@@ -5398,7 +5407,10 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
       prev = temp;
       temp = temp->next;
       if (prev != linetype)
+      {
         free(prev);
+        prev = NULL;
+      }
     }
 
    /*
@@ -5421,6 +5433,7 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
         r->y -= height - linetype->height;
 
       free(linetype);
+      linetype = NULL;
     }
 
    /*
@@ -7196,6 +7209,7 @@ parse_table(tree_t *t,			// I - Tree to parse
       // Draw background on multiple pages...
 
       // Bottom of first page...
+      check_pages(table_page);
       new_render(table_page, RENDER_BOX, table.border_left, bottom,
 	         width, table_y - bottom, bgrgb,
 		 pages[table_page].start);
@@ -7203,19 +7217,20 @@ parse_table(tree_t *t,			// I - Tree to parse
       // Intervening pages...
       for (temp_page = table_page + 1; temp_page < *page; temp_page ++)
       {
+        check_pages(temp_page);
         new_render(temp_page, RENDER_BOX, table.border_left, bottom,
                    width, top - bottom, bgrgb, pages[temp_page].start);
       }
 
       // Top of last page...
       check_pages(*page);
-
       new_render(*page, RENDER_BOX, table.border_left, *y,
 	         width, top - *y, bgrgb, pages[*page].start);
     }
     else
     {
       // Draw background in row...
+      check_pages(table_page);
       new_render(table_page, RENDER_BOX, table.border_left, *y,
 	         width, table_y - *y, bgrgb, pages[table_page].start);
     }
