@@ -1,3 +1,9 @@
+# Changes in HTMLDOC v1.9.17
+
+- Fixed multiple conversions of UTF-8 HTML files from the GUI (Issue #496)
+- Fixed some minor CodeQL warnings.
+
+
 # Changes in HTMLDOC v1.9.16
 
 - Added support for `$DATE(format)` and `$TIME(format)` header/footer strings
