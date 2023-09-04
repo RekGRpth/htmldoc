@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: update build environment
       run: sudo apt-get update --fix-missing -y
     - name: install prerequisites
@@ -29,7 +29,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install prerequisites
       run: brew install cppcheck fltk libjpeg libpng
     - name: configure
@@ -42,7 +42,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: setup-msbuild
       uses: microsoft/setup-msbuild@v1.0.2
     - name: nuget restore
