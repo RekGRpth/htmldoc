@@ -42,9 +42,7 @@ HTMLDOCOBJS =	\
 		ps-pdf.o \
 		rc4.o \
 		zipc.o
-TESTOBJS =	\
-		testhtml.o
-OBJS	=	$(COMMONOBJS) $(HTMLDOCOBJS) $(TESTOBJS)
+OBJS	=	$(COMMONOBJS) $(HTMLDOCOBJS)
 
 CSRCS	=	\
 		file.c \
