@@ -1,7 +1,7 @@
 /*
  * HTML parsing routines for HTMLDOC, a HTML document processing program.
  *
- * Copyright 2011-2021 by Michael R Sweet.
+ * Copyright 2011-2023 by Michael R Sweet.
  * Copyright 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -13,7 +13,7 @@
  */
 
 #include "htmldoc.h"
-#include "http.h"
+#include <cups/http.h>
 #include <ctype.h>
 
 
@@ -3511,10 +3511,6 @@ fix_filename(char *filename,		/* I - Original filename */
     }
     else
     {
-      // Relative path, strip the last component from the resource...
-      if ((slash = strrchr(resource, '/')) != NULL)
-	*slash = '\0';
-
       // Handle "../" in filename...
       while (!strncmp(filename, "../", 3))
       {

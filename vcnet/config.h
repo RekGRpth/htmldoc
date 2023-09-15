@@ -1,7 +1,7 @@
 /*
- * Configuration file for HTMLDOC.
+ * Visual Studio configuration file for HTMLDOC.
  *
- * Copyright © 2011-2022 by Michael R Sweet.
+ * Copyright © 2011-2023 by Michael R Sweet.
  * Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <io.h>
 #include <direct.h>
+#include <sys/types.h>
 
 
 /*
@@ -82,14 +83,17 @@ typedef unsigned long useconds_t;
 #undef const
 #undef __CHAR_UNSIGNED__
 #define __attribute__(x)
-typedef long ssize_t;
+#  if defined(_WIN32) && !defined(__CUPS_SSIZE_T_DEFINED)
+#    define __CUPS_SSIZE_T_DEFINED
+typedef __int64 ssize_t;
+#  endif /* _WIN32 && !__CUPS_SSIZE_T_DEFINED */
 
 
 /*
  * What is the version number for this software?
  */
 
-#define SVERSION	"1.9.16"
+#define SVERSION	"1.9.17"
 
 
 /*
@@ -149,73 +153,6 @@ typedef long ssize_t;
  */
 
 /* #undef HAVE_LIBXPM */
-
-
-/*
- * Which encryption libraries do we have?
- */
-
-/* #undef HAVE_CDSASSL */
-/* #undef HAVE_GNUTLS */
-#define HAVE_SSPISSL 1
-#define HAVE_SSL 1
-
-
-/*
- * Do we have the gnutls_transport_set_pull_timeout_function function?
- */
-
-/* #undef HAVE_GNUTLS_TRANSPORT_SET_PULL_TIMEOUT_FUNCTION */
-
-
-/*
- * Do we have the gnutls_priority_set_direct function?
- */
-
-/* #undef HAVE_GNUTLS_PRIORITY_SET_DIRECT */
-
-
-/*
- * What Security framework headers do we have?
- */
-
-/* #undef HAVE_AUTHORIZATION_H */
-/* #undef HAVE_SECBASEPRIV_H */
-/* #undef HAVE_SECCERTIFICATE_H */
-/* #undef HAVE_SECIDENTITYSEARCHPRIV_H */
-/* #undef HAVE_SECITEM_H */
-/* #undef HAVE_SECITEMPRIV_H */
-/* #undef HAVE_SECPOLICY_H */
-/* #undef HAVE_SECPOLICYPRIV_H */
-/* #undef HAVE_SECURETRANSPORTPRIV_H */
-
-
-/*
- * Do we have the cssmErrorString function?
- */
-
-/* #undef HAVE_CSSMERRORSTRING */
-
-
-/*
- * Do we have the SecGenerateSelfSignedCertificate function?
- */
-
-/* #undef HAVE_SECGENERATESELFSIGNEDCERTIFICATE */
-
-
-/*
- * Do we have the SecKeychainOpen function?
- */
-
-/* #undef HAVE_SECKEYCHAINOPEN */
-
-
-/*
- * Do we have (a working) SSLSetEnabledCiphers function?
- */
-
-/* #undef HAVE_SSLSETENABLEDCIPHERS */
 
 
 /*
@@ -279,42 +216,6 @@ typedef long ssize_t;
 #  define HTMLDOC_RAND() rand()
 #  define HTMLDOC_SRAND(v) srand(v)
 #endif /* HAVE_ARC4RANDOM */
-
-
-/*
- * Do we have hstrerror()?
- */
-
-/* #undef HAVE_HSTRERROR */
-
-
-/*
- * Do we have getaddrinfo()?
- */
-
-#define HAVE_GETADDRINFO 1
-
-
-/*
- * Do we have getnameinfo()?
- */
-
-#define HAVE_GETNAMEINFO 1
-
-
-/*
- * Do we have the <resolv.h> header file and/or res_init()?
- */
-
-/* #undef HAVE_RESOLV_H */
-/* #undef HAVE_RES_INIT */
-
-
-/*
- * Do we have poll()?
- */
-
-/* #undef HAVE_POLL */
 
 
 /*

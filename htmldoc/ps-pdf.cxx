@@ -6,7 +6,7 @@
  * broken into more manageable pieces once we make all of the output
  * "drivers" into classes...
  *
- * Copyright © 2011-2022 by Michael R Sweet.
+ * Copyright © 2011-2023 by Michael R Sweet.
  * Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -165,6 +165,7 @@ typedef struct				//// Output page info
 
 static time_t	doc_time;		// Current time
 static struct tm doc_date;		// Current date
+static struct tm doc_gmdate;		// Current date (UTC)
 
 static uchar    *current_url = NULL;
 static int	title_page;
@@ -545,6 +546,7 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
     doc_time = time(NULL);
 
   localtime_r(&doc_time, &doc_date);
+  gmtime_r(&doc_time, &doc_gmdate);
 
   num_headings   = 0;
   alloc_headings = 0;
@@ -4399,12 +4401,12 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	    *needspace = 1;
           }
 
-          *left += 36.0f;
+          *left += (float)PreIndent;
           *x    = *left;
 
           parse_pre(t, *left, *right, *bottom, *top, x, y, page, *needspace);
 
-          *left      -= 36.0f;
+          *left      -= (float)PreIndent;
           *x         = *left;
           *needspace = 1;
           break;
@@ -11662,14 +11664,9 @@ write_prolog(FILE  *out,		/* I - Output file */
       fprintf(out, "%%%%BoundingBox: 0 0 %d %d\n", PageWidth, PageLength);
     fprintf(out,"%%%%LanguageLevel: %d\n", PSLevel);
     fputs("%%Creator: " HTMLDOC_PRODUCER "\n", out);
-    fprintf(out, "%%%%CreationDate: D:%04d%02d%02d%02d%02d%02d%03d00\n",
-            doc_date.tm_year + 1900, doc_date.tm_mon + 1, doc_date.tm_mday,
-            doc_date.tm_hour, doc_date.tm_min, doc_date.tm_sec,
-#ifdef WIN32
-            (int)(_timezone / 3600));
-#else
-	    (int)(doc_date.tm_gmtoff / 3600));
-#endif // WIN32
+    fprintf(out, "%%%%CreationDate: D:%04d%02d%02d%02d%02d%02d00000\n",
+            doc_gmdate.tm_year + 1900, doc_gmdate.tm_mon + 1, doc_gmdate.tm_mday,
+            doc_gmdate.tm_hour, doc_gmdate.tm_min, doc_gmdate.tm_sec);
     if (doc_title != NULL)
       fprintf(out, "%%%%Title: %s\n", doc_title);
     if (author != NULL)
@@ -12051,14 +12048,9 @@ write_prolog(FILE  *out,		/* I - Output file */
     fputs("/Producer", out);
     write_string(out, (uchar *)HTMLDOC_PRODUCER, 0);
     fputs("/CreationDate", out);
-    snprintf(temp, sizeof(temp), "D:%04d%02d%02d%02d%02d%02d%03d00",
-            doc_date.tm_year + 1900, doc_date.tm_mon + 1, doc_date.tm_mday,
-            doc_date.tm_hour, doc_date.tm_min, doc_date.tm_sec,
-#ifdef WIN32
-            (int)(_timezone / 3600));
-#else
-	    (int)(doc_date.tm_gmtoff / 3600));
-#endif // WIN32
+    snprintf(temp, sizeof(temp), "D:%04d%02d%02d%02d%02d%02d00000",
+            doc_gmdate.tm_year + 1900, doc_gmdate.tm_mon + 1, doc_gmdate.tm_mday,
+            doc_gmdate.tm_hour, doc_gmdate.tm_min, doc_gmdate.tm_sec);
     write_string(out, (uchar *)temp, 0);
 
     if (doc_title != NULL)

@@ -1,7 +1,7 @@
 /*
  * Main entry for HTMLDOC, a HTML document processing program.
  *
- * Copyright 2011-2022 by Michael R Sweet.
+ * Copyright 2011-2023 by Michael R Sweet.
  * Copyright 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -15,7 +15,7 @@
 #define _HTMLDOC_CXX_
 #include "htmldoc.h"
 #include "markdown.h"
-#include "http.h"
+#include <cups/http.h>
 #include <ctype.h>
 #include <fcntl.h>
 
@@ -980,6 +980,14 @@ main(int  argc,				/* I - Number of command-line arguments */
     }
     else if (compare_strings(argv[i], "--portrait", 4) == 0)
       Landscape = 0;
+    else if (compare_strings(argv[i], "--pre-indent", 5) == 0)
+    {
+      i ++;
+      if (i < argc)
+        PreIndent = get_measurement(argv[i]);
+      else
+        usage(argv[i - 1]);
+    }
     else if (compare_strings(argv[i], "--proxy", 4) == 0)
     {
       i ++;
@@ -2171,6 +2179,8 @@ parse_options(const char   *line,	// I - Options from book file
       PageTop = get_measurement(temp2);
     else if (strcmp(temp, "--bottom") == 0)
       PageBottom = get_measurement(temp2);
+    else if (strcmp(temp, "--pre-indent") == 0)
+      PreIndent = get_measurement(temp2);
     else if (strcmp(temp, "--header") == 0)
       get_format(temp2, Header);
     else if (strcmp(temp, "--header1") == 0)
