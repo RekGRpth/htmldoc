@@ -17,4 +17,8 @@ jobs:
     strategy:
       matrix:
         repo:
-          - lib.docker
+          - angie.docker
+          - django.docker
+          - nginx.docker
+          - postgres.docker
+          - web2py.docker
