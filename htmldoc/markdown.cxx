@@ -306,7 +306,7 @@ add_leaf(tree_t *html,                  /* I - Parent HTML node */
 
     case MMD_TYPE_CODE_TEXT :
         element  = MARKUP_CODE;
-        typeface = _htmlBodyFont >= TYPE_MONOSPACE ? TYPE_MONOSPACE : TYPE_COURIER;
+        typeface = TYPE_MONO;
         break;
 
     case MMD_TYPE_IMAGE :
