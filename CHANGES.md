@@ -1,3 +1,12 @@
+# Changes in HTMLDOC v1.9.18
+
+- Fixed table rendering when there are missing `</tr>` (Issue #494)
+- Fixed support for links of the form "filename.html#anchor" in PDF output
+  (Issue #514)
+- Fixed `--header1` support for web page output (Issue #515)
+- Fixed markdown emphasized, strong, and struck-through text (Issue 517)
+
+
 # Changes in HTMLDOC v1.9.17
 
 - Added new `--pre-indent` option to control indentation of pre-formatted text

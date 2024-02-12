@@ -6,7 +6,7 @@
  * broken into more manageable pieces once we make all of the output
  * "drivers" into classes...
  *
- * Copyright © 2011-2023 by Michael R Sweet.
+ * Copyright © 2011-2024 by Michael R Sweet.
  * Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -68,7 +68,7 @@ extern "C" {		/* Workaround for JPEG header problems... */
 
 #define HTMLDOC_ASCII85
 //#define HTMLDOC_INTERPOLATION
-#define HTMLDOC_PRODUCER "htmldoc " SVERSION " Copyright 2011-2022 by Michael R Sweet"
+#define HTMLDOC_PRODUCER "htmldoc " SVERSION " Copyright 2011-2024 by Michael R Sweet"
 
 
 /*
@@ -116,7 +116,7 @@ typedef struct				/**** Named link position structure */
 {
   short		page,			/* Page # */
 		top;			/* Top position */
-  uchar		name[124];		/* Reference name */
+  uchar		name[252];		/* Reference name */
 } link_t;
 
 typedef struct				//// Page information
@@ -320,7 +320,7 @@ static void	parse_comment(tree_t *t, float *left, float *width, float *bottom,
 
 static void	check_pages(int page);
 
-static void	add_link(uchar *name, int page, int top);
+static void	add_link(tree_t *html, uchar *name, int page, int top);
 static link_t	*find_link(uchar *name);
 static int	compare_links(link_t *n1, link_t *n2);
 
@@ -1478,14 +1478,12 @@ pspdf_prepare_page(int page)		/* I - Page number */
     * Add chapter header & footer...
     */
 
-    if (page > chapter_starts[chapter] || OutputType != OUTPUT_BOOK)
-      pspdf_prepare_heading(page, print_page, pages[page].header, top,
-                            page_text, sizeof(page_text));
+    if (page == chapter_starts[chapter])
+      pspdf_prepare_heading(page, print_page, pages[page].header1, top, page_text, sizeof(page_text));
     else
-      pspdf_prepare_heading(page, print_page, pages[page].header1, top,
-                            page_text, sizeof(page_text));
-    pspdf_prepare_heading(page, print_page, pages[page].footer, 0,
-                          page_text, sizeof(page_text));
+      pspdf_prepare_heading(page, print_page, pages[page].header, top, page_text, sizeof(page_text));
+
+    pspdf_prepare_heading(page, print_page, pages[page].footer, 0, page_text, sizeof(page_text));
   }
 
  /*
@@ -3845,7 +3843,8 @@ render_contents(tree_t *t,		/* I - Tree to parse */
       * Add a target link...
       */
 
-      add_link(link, *page, (int)(*y + height));
+      add_link(NULL, link, *page, (int)(*y + height));
+      add_link(temp, link, *page, (int)(*y + height));
     }
 
     switch (temp->markup)
@@ -3857,7 +3856,8 @@ render_contents(tree_t *t,		/* I - Tree to parse */
             * Add a target link...
             */
 
-            add_link(link, *page, (int)(*y + height));
+            add_link(NULL, link, *page, (int)(*y + height));
+            add_link(temp, link, *page, (int)(*y + height));
           }
           break;
 
@@ -4166,7 +4166,8 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
       * Add a link target using the ID=name variable...
       */
 
-      add_link(name, *page, (int)*y);
+      add_link(NULL, name, *page, (int)*y);
+      add_link(t, name, *page, (int)*y);
     }
     else if (t->markup == MARKUP_FILE)
     {
@@ -4186,7 +4187,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
         *sep = '\0';
 
       // Add the link
-      add_link(newname, *page, (int)*y);
+      add_link(NULL, newname, *page, (int)*y);
     }
 
     if (chapter == 0 && !title_page)
@@ -5355,7 +5356,8 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
 	* Add a target link...
 	*/
 
-	add_link(link, *page, (int)(*y + height));
+	add_link(NULL, link, *page, (int)(*y + height));
+	add_link(temp, link, *page, (int)(*y + height));
       }
 
       switch (temp->markup)
@@ -5367,7 +5369,8 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
               * Add a target link...
               */
 
-              add_link(link, *page, (int)(*y + height));
+              add_link(NULL, link, *page, (int)(*y + height));
+              add_link(temp, link, *page, (int)(*y + height));
             }
 
 	default :
@@ -5683,7 +5686,8 @@ parse_pre(tree_t *t,		/* I - Tree to parse */
 	* Add a target link...
 	*/
 
-	add_link(link, *page, (int)(*y + height));
+	add_link(NULL, link, *page, (int)(*y + height));
+	add_link(start, link, *page, (int)(*y + height));
       }
 
       switch (start->markup)
@@ -5699,7 +5703,8 @@ parse_pre(tree_t *t,		/* I - Tree to parse */
               * Add a target link...
               */
 
-              add_link(link, *page, (int)(*y + height));
+              add_link(NULL, link, *page, (int)(*y + height));
+              add_link(start, link, *page, (int)(*y + height));
             }
             break;
 
@@ -9053,9 +9058,10 @@ check_pages(int page)	// I - Current page
  */
 
 static void
-add_link(uchar *name,		/* I - Name of link */
-         int   page,		/* I - Page # */
-         int   top)		/* I - Y position */
+add_link(tree_t *html,		/* I - HTML node */
+         uchar  *name,		/* I - Name of link */
+         int    page,		/* I - Page # */
+         int    top)		/* I - Y position */
 {
   link_t	*temp;		/* New name */
 
@@ -9065,48 +9071,57 @@ add_link(uchar *name,		/* I - Name of link */
 
   DEBUG_printf(("add_link(name=\"%s\", page=%d, top=%d)\n", name, page, top));
 
-  if ((temp = find_link(name)) != NULL)
+  if (!html && (temp = find_link(name)) != NULL)
   {
     temp->page = (short)page;
     temp->top  = (short)top;
+    return;
+  }
+
+  // See if we need to allocate memory for links...
+  if (num_links >= alloc_links)
+  {
+    // Allocate more links...
+    alloc_links += ALLOC_LINKS;
+
+    if (num_links == 0)
+      temp = (link_t *)malloc(sizeof(link_t) * alloc_links);
+    else
+      temp = (link_t *)realloc(links, sizeof(link_t) * alloc_links);
+
+    if (temp == NULL)
+    {
+      progress_error(HD_ERROR_OUT_OF_MEMORY, "Unable to allocate memory for %d links - %s", (int)alloc_links, strerror(errno));
+      alloc_links -= ALLOC_LINKS;
+      return;
+    }
+
+    links = temp;
+  }
+
+  // Add a new link...
+  temp = links + num_links;
+  num_links ++;
+
+  if (html)
+  {
+    uchar	*filename;		/* Filename */
+
+    if ((filename = htmlGetVariable(html->parent, (uchar *)"_HD_FILENAME")) != NULL)
+      snprintf((char *)temp->name, sizeof(temp->name), "%s#%s", (char *)filename, (char *)name);
+    else
+      strlcpy((char *)temp->name, (char *)name, sizeof(temp->name));
   }
   else
   {
-    // See if we need to allocate memory for links...
-    if (num_links >= alloc_links)
-    {
-      // Allocate more links...
-      alloc_links += ALLOC_LINKS;
-
-      if (num_links == 0)
-        temp = (link_t *)malloc(sizeof(link_t) * alloc_links);
-      else
-        temp = (link_t *)realloc(links, sizeof(link_t) * alloc_links);
-
-      if (temp == NULL)
-      {
-	progress_error(HD_ERROR_OUT_OF_MEMORY,
-                       "Unable to allocate memory for %d links - %s",
-	               (int)alloc_links, strerror(errno));
-        alloc_links -= ALLOC_LINKS;
-	return;
-      }
-
-      links = temp;
-    }
-
-    // Add a new link...
-    temp = links + num_links;
-    num_links ++;
-
     strlcpy((char *)temp->name, (char *)name, sizeof(temp->name));
-    temp->page = (short)page;
-    temp->top  = (short)top;
-
-    if (num_links > 1)
-      qsort(links, num_links, sizeof(link_t),
-            (compare_func_t)compare_links);
   }
+
+  temp->page = (short)page;
+  temp->top  = (short)top;
+
+  if (num_links > 1)
+    qsort(links, num_links, sizeof(link_t), (compare_func_t)compare_links);
 }
 
 
@@ -9680,10 +9695,20 @@ static tree_t *			/* O - Flattened markup tree */
 flatten_tree(tree_t *t)		/* I - Markup tree to flatten */
 {
   tree_t	*temp,		/* New tree node */
+		*parent,	/* Parent node (for file info) */
 		*flat;		/* Flattened tree */
 
 
-  flat = NULL;
+  flat   = NULL;
+  parent = NULL;
+  for (temp = t; temp != NULL; temp = temp->parent)
+  {
+    if (temp->markup == MARKUP_FILE)
+    {
+      parent = temp;
+      break;
+    }
+  }
 
   while (t != NULL)
   {
@@ -9698,7 +9723,7 @@ flatten_tree(tree_t *t)		/* I - Markup tree to flatten */
       case MARKUP_IMG :
 	  temp = (tree_t *)calloc(sizeof(tree_t), 1);
 	  memcpy(temp, t, sizeof(tree_t));
-	  temp->parent = NULL;
+	  temp->parent = parent;
 	  temp->child  = NULL;
 	  temp->prev   = flat;
 	  temp->next   = NULL;
@@ -9715,7 +9740,7 @@ flatten_tree(tree_t *t)		/* I - Markup tree to flatten */
           {
 	    temp = (tree_t *)calloc(sizeof(tree_t), 1);
 	    memcpy(temp, t, sizeof(tree_t));
-	    temp->parent = NULL;
+	    temp->parent = parent;
 	    temp->child  = NULL;
 	    temp->prev   = flat;
 	    temp->next   = NULL;
@@ -9754,7 +9779,7 @@ flatten_tree(tree_t *t)		/* I - Markup tree to flatten */
       case MARKUP_CAPTION :
 	  temp = (tree_t *)calloc(sizeof(tree_t), 1);
 	  temp->markup = MARKUP_BR;
-	  temp->parent = NULL;
+	  temp->parent = parent;
 	  temp->child  = NULL;
 	  temp->prev   = flat;
 	  temp->next   = NULL;
