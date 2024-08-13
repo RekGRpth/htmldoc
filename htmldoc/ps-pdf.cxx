@@ -370,6 +370,13 @@ int
 pspdf_export(tree_t *document,	/* I - Document to export */
              tree_t *toc)	/* I - Table of contents for document */
 {
+    return pspdf_export_out(document, toc, NULL);
+}
+
+int
+pspdf_export_out(tree_t *document,	/* I - Document to export */
+             tree_t *toc, FILE *out)	/* I - Table of contents for document */
+{
   int		i;		/* Looping vars */
   const char	*title_file;	/* Location of title image/file */
   uchar		*author,	/* Author of document */
