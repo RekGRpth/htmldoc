@@ -1,15 +1,11 @@
 /*
  * Filename routines for HTMLDOC, a HTML document processing program.
  *
- * Copyright © 2011-2023 by Michael R Sweet.
+ * Copyright © 2011-2024 by Michael R Sweet.
  * Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
  * the file "COPYING".
- */
-
-/*
- * Include necessary headers.
  */
 
 #include "file.h"
@@ -89,23 +85,23 @@ file_basename(const char *s)	/* I - Filename or URL */
   if (s == NULL)
     return (NULL);
 
+  if (strchr(s, '#') != NULL)
+  {
+    char	*bufptr;	// Pointer into buffer
+
+    strlcpy(buf, s, sizeof(buf));
+    s = buf;
+
+    if ((bufptr = strchr(buf, '#')) != NULL)
+      *bufptr = '\0';
+  }
+
   if ((basename = strrchr(s, '/')) != NULL)
-    basename ++;
+    return (basename + 1);
   else if ((basename = strrchr(s, '\\')) != NULL)
-    basename ++;
+    return (basename + 1);
   else
-    basename = (char *)s;
-
-  if (basename[0] == '#')
-    return (NULL);
-
-  if (strchr(basename, '#') == NULL)
-    return (basename);
-
-  strlcpy(buf, basename, sizeof(buf));
-  *(char *)strchr(buf, '#') = '\0';
-
-  return (buf);
+    return (s);
 }
 
 
@@ -525,10 +521,10 @@ file_find_check(const char *filename)	/* I - File or URL */
 
       if (!httpGet(http, connpath))
       {
-	while ((status = httpUpdate(http)) == HTTP_CONTINUE);
+	while ((status = httpUpdate(http)) == HTTP_STATUS_CONTINUE);
       }
       else
-	status = HTTP_ERROR;
+	status = HTTP_STATUS_ERROR;
 
       if (status >= HTTP_STATUS_MULTIPLE_CHOICES && status < HTTP_STATUS_BAD_REQUEST)
       {
@@ -549,7 +545,7 @@ file_find_check(const char *filename)	/* I - File or URL */
       }
     }
 
-    if (status != HTTP_OK)
+    if (status != HTTP_STATUS_OK)
     {
       progress_hide();
       progress_error((HDerror)status, "%s (%s)", httpStatus(status), filename);

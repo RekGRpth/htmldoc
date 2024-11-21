@@ -1,11 +1,14 @@
 # Changes in HTMLDOC v1.9.19
 
+- Security: Fixed an issue with the `file_basename` implementation (Issue #532)
 - Updated HTML and header/footer code to use a string pool to simplify memory
   management and fix potential double-free bugs.
 - Updated configure script to look for zlib with pkg-config (Issue #519)
 - Updated markdown support code to mmd.
+- Fixed export of UTF-8 HTML (Issue #526)
 - Fixed handling of whitespace-only nodes (Issue #528)
 - Fixed handling of tabs in PRE nodes (Issue #529)
+- Fixed case sensitivity of link targets (Issue #530)
 
 
 # Changes in HTMLDOC v1.9.18
