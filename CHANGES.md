@@ -1,10 +1,12 @@
 # Changes in HTMLDOC v1.9.19
 
 - Security: Fixed an issue with the `file_basename` implementation (Issue #532)
+- Added support for 'file' method in links (Issue #512)
 - Updated HTML and header/footer code to use a string pool to simplify memory
   management and fix potential double-free bugs.
 - Updated configure script to look for zlib with pkg-config (Issue #519)
 - Updated markdown support code to mmd.
+- Fixed hyperlinks to subfolders (Issue #525)
 - Fixed export of UTF-8 HTML (Issue #526)
 - Fixed handling of whitespace-only nodes (Issue #528)
 - Fixed handling of tabs in PRE nodes (Issue #529)
