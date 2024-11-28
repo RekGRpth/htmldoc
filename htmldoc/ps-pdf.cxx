@@ -4819,8 +4819,7 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
 		*border;
   float		rgb[3];
   uchar		line[10240],
-		*lineptr,
-		*dataptr;
+		*lineptr;
   tree_t	*linetype;
   float		linex,
 		linewidth;
@@ -5212,12 +5211,9 @@ parse_paragraph(tree_t *t,	/* I - Tree to parse */
     if (temp != NULL && temp->markup == MARKUP_NONE && temp->data[0] == ' ' && temp->data[1])
     {
       // Drop leading space...
-      for (dataptr = temp->data; *dataptr; dataptr ++)
-        *dataptr = dataptr[1];
-      *dataptr = '\0';
+      temp->data ++;
 
-      temp_width = _htmlWidths[temp->typeface][temp->style][' '] * _htmlSizes[temp->size] * 0.001f;
-      temp->width -= temp_width;
+      temp->width -= _htmlWidths[temp->typeface][temp->style][' '] * _htmlSizes[temp->size] * 0.001f;
       num_chars --;
     }
 
