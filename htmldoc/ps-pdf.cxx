@@ -6,7 +6,7 @@
  * broken into more manageable pieces once we make all of the output
  * "drivers" into classes...
  *
- * Copyright © 2011-2024 by Michael R Sweet.
+ * Copyright © 2011-2025 by Michael R Sweet.
  * Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
  *
  * This program is free software.  Distribution and use rights are outlined in
@@ -923,8 +923,7 @@ pspdf_export_out(tree_t *document,	/* I - Document to export */
 
     pspdf_debug_stats();
 
-    progress_error(HD_ERROR_NO_PAGES,
-                   "Error: no pages generated! (did you remember to use webpage mode?");
+    progress_error(HD_ERROR_NO_PAGES, "No pages generated, did you remember to use --webpage mode?");
   }
 
  /*
@@ -3975,9 +3974,9 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
 
 	    if (t->markup == MARKUP_B && pages[*page].chapter == pages[*page - 1].chapter)
 	    {
-	      uchar *chapter = htmlGetText(t->child->child);
-	      pages[*page].chapter = (uchar *)hd_strdup((char *)chapter);
-	      free(chapter);
+	      uchar *tchapter = htmlGetText(t->child->child);
+	      pages[*page].chapter = (uchar *)hd_strdup((char *)tchapter);
+	      free(tchapter);
 
               for (int i = *page + 1; i < (int)num_pages; i ++)
                 pages[i].chapter = pages[*page].chapter;
@@ -3985,9 +3984,9 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
 
 	    if (pages[*page].heading == pages[*page - 1].heading)
 	    {
-	      uchar *heading = htmlGetText(t->child->child);
-	      pages[*page].heading = (uchar *)hd_strdup((char *)heading);
-	      free(heading);
+	      uchar *theading = htmlGetText(t->child->child);
+	      pages[*page].heading = (uchar *)hd_strdup((char *)theading);
+	      free(theading);
 
               for (int i = *page + 1; i < (int)num_pages; i ++)
                 pages[i].heading = pages[*page].heading;
@@ -4700,9 +4699,9 @@ parse_heading(tree_t *t,	/* I - Tree to parse */
 
   if (t->markup == MARKUP_H1 && !title_page)
   {
-    uchar *chapter = htmlGetText(current_heading);
-    pages[*page].chapter = (uchar *)hd_strdup((char *)chapter);
-    free(chapter);
+    uchar *tchapter = htmlGetText(current_heading);
+    pages[*page].chapter = (uchar *)hd_strdup((char *)tchapter);
+    free(tchapter);
 
     for (int i = *page + 1; i < (int)num_pages; i ++)
       pages[i].chapter = pages[*page].chapter;
@@ -4712,10 +4711,10 @@ parse_heading(tree_t *t,	/* I - Tree to parse */
       (*page > 0 && pages[*page].heading == pages[*page - 1].heading)) &&
       !title_page)
   {
-    uchar *heading = htmlGetText(current_heading);
-    pages[*page].heading  = (uchar *)hd_strdup((char *)heading);
+    uchar *theading = htmlGetText(current_heading);
+    pages[*page].heading  = (uchar *)hd_strdup((char *)theading);
     pages[*page].headnode = current_heading;
-    free(heading);
+    free(theading);
 
     for (int i = *page + 1; i < (int)num_pages; i ++)
     {
@@ -7660,6 +7659,7 @@ parse_comment(tree_t *t,	/* I - Tree to parse */
       {
         // NEW SHEET breaks to the next side/sheet...
         (*page) ++;
+        check_pages(*page);
 
 	for (i = *page - 1; i >= 0; i --)
 	  if (pages[i].nup != NumberUp)
