@@ -122,6 +122,7 @@ const char	*_htmlMarkups[] =
 
 const char	*_htmlCurrentFile = "UNKNOWN";
 					// Current file
+int		_htmlCurrentLevel = 0;	// Current include level
 const char	*_htmlData = HTML_DATA;	// Data directory
 float		_htmlPPI = 80.0f;	// Image resolution
 int		_htmlGrayscale = 0;	// Grayscale output?
@@ -215,8 +216,8 @@ static int	compare_variables(var_t *v0, var_t *v1);
 static int	compare_markups(uchar **m0, uchar **m1);
 static void	delete_node(tree_t *t);
 static void	insert_space(tree_t *parent, tree_t *t);
-static int	parse_markup(tree_t *t, FILE *fp, int *linenum);
-static int	parse_variable(tree_t *t, FILE *fp, int *linenum);
+static int	parse_markup(tree_t *t, FILE *fp, long *linenum);
+static int	parse_variable(tree_t *t, FILE *fp, long *linenum);
 static int	compute_size(tree_t *t);
 static int	compute_color(tree_t *t, uchar *color);
 static int	get_alignment(tree_t *t);
@@ -280,13 +281,21 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 		*type,			// Type for EMBED tag
 		*span;			// Value for SPAN tag
   int		sizeval;		// Size value from FONT tag
-  int		linenum;		// Line number in file
+  long		linenum;		// Line number in file
   static uchar	s[10240];		// String from file
   static int	have_whitespace = 0;	// Non-zero if there was leading whitespace
 
 
   DEBUG_printf(("htmlReadFile2(parent=%p, fp=%p, base=\"%s\")\n",
                 (void *)parent, (void *)fp, base ? base : "(null)"));
+
+  if (_htmlCurrentLevel >= MAX_INCLUDES)
+  {
+    progress_error(HD_ERROR_HTML_ERROR, "Too many levels of embedded HTML files (%d)", _htmlCurrentLevel);
+    return (NULL);
+  }
+
+  _htmlCurrentLevel ++;
 
 #ifdef DEBUG
   indent[0] = '\0';
@@ -368,8 +377,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
         // Sigh...  "<" followed by anything but an element name is
 	// invalid HTML, but so many people have asked for this to
 	// be supported that we have added this hack...
-	progress_error(HD_ERROR_HTML_ERROR, "Unquoted < on line %d of %s.",
-	               linenum, _htmlCurrentFile);
+	progress_error(HD_ERROR_HTML_ERROR, "Unquoted < on line %ld of %s.", linenum, _htmlCurrentFile);
 
 	if (ch == '\n')
 	  linenum ++;
@@ -403,9 +411,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	if (parse_markup(t, fp, &linenum) == MARKUP_ERROR)
 	{
 #ifndef DEBUG
-          progress_error(HD_ERROR_READ_ERROR,
-                         "Unable to parse HTML element on line %d of %s!",
-			 linenum, _htmlCurrentFile);
+          progress_error(HD_ERROR_READ_ERROR, "Unable to parse HTML element on line %ld of %s.", linenum, _htmlCurrentFile);
 #endif // !DEBUG
 
           delete_node(t);
@@ -564,15 +570,11 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	        // Strictly speaking, this is an error - TD/TH can only
 		// be found under TR, but web browsers automatically
 		// inject a TR...
-		progress_error(HD_ERROR_HTML_ERROR,
-		               "No TR element before %s element on line %d of %s.",
-			       _htmlMarkups[t->markup], linenum,
-			       _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "No TR element before %s element on line %ld of %s.", _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
 
                 parent = htmlAddTree(temp, MARKUP_TR, NULL);
 		prev   = NULL;
-		DEBUG_printf(("%str (inserted) under %s, line %d\n", indent,
-		              _htmlMarkups[temp->markup], linenum));
+		DEBUG_printf(("%str (inserted) under %s, line %ld\n", indent, _htmlMarkups[temp->markup], linenum));
 	      }
 
 	      temp = NULL;
@@ -606,13 +608,8 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	      temp->markup != MARKUP_TR)
 	  {
 	    // Log this condition as an error...
-	    progress_error(HD_ERROR_HTML_ERROR,
-	                   "No /%s element before %s element on line %d of %s.",
-	                   _htmlMarkups[temp->markup],
-			   _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
-	    DEBUG_printf(("%sNo /%s element before %s element on line %d.\n",
-	                  indent, _htmlMarkups[temp->markup],
-			  _htmlMarkups[t->markup], linenum));
+	    progress_error(HD_ERROR_HTML_ERROR, "No /%s element before %s element on line %ld of %s.", _htmlMarkups[temp->markup], _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
+	    DEBUG_printf(("%sNo /%s element before %s element on line %ld.\n", indent, _htmlMarkups[temp->markup], _htmlMarkups[t->markup], linenum));
 	  }
 
 #ifdef DEBUG
@@ -683,11 +680,8 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	  if (t->markup != MARKUP_UNKNOWN &&
 	      t->markup != MARKUP_COMMENT)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR,
-	                   "Dangling /%s element on line %d of %s.",
-			   _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
-	    DEBUG_printf(("%sDangling /%s element on line %d.\n",
-			  indent, _htmlMarkups[t->markup], linenum));
+	    progress_error(HD_ERROR_HTML_ERROR, "Dangling /%s element on line %ld of %s.", _htmlMarkups[t->markup], linenum, _htmlCurrentFile);
+	    DEBUG_printf(("%sDangling /%s element on line %ld.\n", indent, _htmlMarkups[t->markup], linenum));
           }
 
 	  delete_node(t);
@@ -721,8 +715,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
           *eptr = '\0';
           if (!ch)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
-	                   linenum, _htmlCurrentFile);
+	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", linenum, _htmlCurrentFile);
 
             if (ptr < (s + sizeof(s) - 1))
 	      *ptr++ = '&';
@@ -731,9 +724,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	  }
 	  else if ((ch = iso8859(entity)) == 0)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR,
-	                   "Unknown character entity \"&%s;\" on line %d of %s.",
-	                   entity, linenum, _htmlCurrentFile);
+	    progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, linenum, _htmlCurrentFile);
 
             if (ptr < (s + sizeof(s) - 1))
 	      *ptr++ = '&';
@@ -775,7 +766,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
       t->markup = MARKUP_NONE;
       t->data   = (uchar *)hd_strdup((char *)s);
 
-      DEBUG_printf(("%sfragment \"%s\", line %d\n", indent, s, linenum));
+      DEBUG_printf(("%sfragment \"%s\", line %ld\n", indent, s, linenum));
     }
     else
     {
@@ -810,8 +801,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 
           if (!ch)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
-	                   linenum, _htmlCurrentFile);
+	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", linenum, _htmlCurrentFile);
 
             if (ptr < (s + sizeof(s) - 1))
 	      *ptr++ = '&';
@@ -820,9 +810,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	  }
 	  else if ((ch = iso8859(entity)) == 0)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR,
-	                   "Unknown character entity \"&%s;\" on line %d of %s.",
-	                   entity, linenum, _htmlCurrentFile);
+	    progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, linenum, _htmlCurrentFile);
 
             if (ptr < (s + sizeof(s) - 1))
 	      *ptr++ = '&';
@@ -866,8 +854,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
       t->markup = MARKUP_NONE;
       t->data   = (uchar *)hd_strdup((char *)s);
 
-      DEBUG_printf(("%sfragment \"%s\" (len=%d), line %d\n", indent, s,
-                    (int)(ptr - s), linenum));
+      DEBUG_printf(("%sfragment \"%s\" (len=%d), line %ld\n", indent, s, (int)(ptr - s), linenum));
     }
 
     // If the parent tree pointer is not null and this is the first
@@ -1531,6 +1518,8 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
       prev   = NULL;
     }
   }
+
+  _htmlCurrentLevel --;
 
   return (tree);
 }
@@ -2598,7 +2587,7 @@ insert_space(tree_t *parent,	// I - Parent node
 static int			// O - -1 on error, MARKUP_nnnn otherwise
 parse_markup(tree_t *t,		// I - Current tree entry
              FILE   *fp,	// I - Input file
-	     int    *linenum)	// O - Current line number
+	     long   *linenum)	// O - Current line number
 {
   int	ch, ch2;		// Characters from file
   uchar	markup[255],		// Markup string...
@@ -2611,6 +2600,7 @@ parse_markup(tree_t *t,		// I - Current tree entry
   mptr = markup;
 
   while ((ch = getc(fp)) != EOF && mptr < (markup + sizeof(markup) - 1))
+  {
     if (ch == '>' || isspace(ch))
       break;
     else if (ch == '/' && mptr > markup)
@@ -2641,6 +2631,7 @@ parse_markup(tree_t *t,		// I - Current tree entry
         break;
       }
     }
+  }
 
   *mptr = '\0';
 
@@ -2667,7 +2658,7 @@ parse_markup(tree_t *t,		// I - Current tree entry
     t->markup = (markup_t)((const char **)temp - _htmlMarkups);
     cptr      = comment;
 
-    DEBUG_printf(("%s%s, line %d\n", indent, markup, *linenum));
+    DEBUG_printf(("%s%s, line %ld\n", indent, markup, *linenum));
   }
 
   if (t->markup == MARKUP_COMMENT || t->markup == MARKUP_UNKNOWN)
@@ -2724,8 +2715,7 @@ parse_markup(tree_t *t,		// I - Current tree entry
 	  *eptr = '\0';
 	  if (!ch)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
-	                   *linenum, _htmlCurrentFile);
+	    progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
             if (cptr < (comment + sizeof(comment) - 1))
 	      *cptr++ = '&';
@@ -2734,9 +2724,7 @@ parse_markup(tree_t *t,		// I - Current tree entry
 	  }
 	  else if ((ch = iso8859(entity)) == 0)
 	  {
-	    progress_error(HD_ERROR_HTML_ERROR,
-	                   "Unknown character entity \"&%s;\" on line %d of %s.",
-	                   entity, *linenum, _htmlCurrentFile);
+	    progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
             if (cptr < (comment + sizeof(comment) - 1))
 	      *cptr++ = '&';
@@ -2807,7 +2795,7 @@ parse_markup(tree_t *t,		// I - Current tree entry
 static int				// O - -1 on error, 0 on success
 parse_variable(tree_t *t,		// I - Current tree entry
                FILE   *fp,		// I - Input file
-	       int    *linenum)		// I - Current line number
+	       long   *linenum)		// I - Current line number
 {
   uchar	name[1024],			// Name of variable
 	value[10240],			// Value of variable
@@ -2819,6 +2807,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
 
   ptr = name;
   while ((ch = getc(fp)) != EOF)
+  {
     if (isspace(ch) || ch == '=' || ch == '>' || ch == '\r')
       break;
     else if (ch == '/' && ptr == name)
@@ -2834,6 +2823,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
       if (ch)
         *ptr++ = (uchar)ch;
     }
+  }
 
   *ptr = '\0';
 
@@ -2891,9 +2881,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
               *eptr = '\0';
               if (!ch)
 	      {
-		progress_error(HD_ERROR_HTML_ERROR,
-		               "Unquoted & on line %d of %s.",
-	                       *linenum, _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
         	if (ptr < (value + sizeof(value) - 1))
 		  *ptr++ = '&';
@@ -2902,9 +2890,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	      }
 	      else if ((ch = iso8859(entity)) == 0)
 	      {
-		progress_error(HD_ERROR_HTML_ERROR,
-		               "Unknown character entity \"&%s;\" on line %d of %s.",
-	                       entity, *linenum, _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
         	if (ptr < (value + sizeof(value) - 1))
 		  *ptr++ = '&';
@@ -2965,8 +2951,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
               *eptr = '\0';
               if (!ch)
 	      {
-		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
-	                       *linenum, _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
         	if (ptr < (value + sizeof(value) - 1))
 		  *ptr++ = '&';
@@ -2975,9 +2960,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	      }
 	      else if ((ch = iso8859(entity)) == 0)
 	      {
-		progress_error(HD_ERROR_HTML_ERROR,
-		               "Unknown character entity \"&%s;\" on line %d of %s.",
-	                       entity, *linenum, _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
         	if (ptr < (value + sizeof(value) - 1))
 		  *ptr++ = '&';
@@ -3039,8 +3022,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
               *eptr = '\0';
               if (!ch)
 	      {
-		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %d of %s.",
-	                       *linenum, _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
         	if (ptr < (value + sizeof(value) - 1))
 		  *ptr++ = '&';
@@ -3049,9 +3031,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	      }
 	      else if ((ch = iso8859(entity)) == 0)
 	      {
-		progress_error(HD_ERROR_HTML_ERROR,
-		               "Unknown character entity \"&%s;\" on line %d of %s.",
-	                       entity, *linenum, _htmlCurrentFile);
+		progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
         	if (ptr < (value + sizeof(value) - 1))
 		  *ptr++ = '&';
