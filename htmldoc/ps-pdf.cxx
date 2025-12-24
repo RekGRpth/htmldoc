@@ -3893,7 +3893,8 @@ render_contents(tree_t *t,		/* I - Tree to parse */
 static int
 count_headings(tree_t *t)		// I - Tree to count
 {
-  int	count;				// Number of headings...
+  tree_t	*doc = t;		// Top of tree
+  int		count;			// Number of headings...
 
 
   count = 0;
@@ -3905,16 +3906,10 @@ count_headings(tree_t *t)		// I - Tree to count
       case MARKUP_B :
       case MARKUP_LI :
           count ++;
-	  if (t->last_child && t->last_child->markup == MARKUP_UL)
-	    count += count_headings(t->last_child);
 	  break;
-
-      default :
-          count += count_headings(t->child);
-          break;
     }
 
-    t = t->next;
+    t = htmlWalkNext(doc, t);
   }
 
   return (count);
@@ -3937,11 +3932,18 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
                int    *heading,		/* IO - Heading # */
 	       tree_t *chap)		/* I - Chapter heading */
 {
+  bool	descend;			/* Descend? */
+
+
   DEBUG_printf(("parse_contents(t=%p, left=%.1f, right=%.1f, bottom=%.1f, top=%.1f, y=%.1f, page=%d, heading=%d, chap=%p)\n",
                 (void *)t, left, right, bottom, top, *y, *page, *heading, (void *)chap));
 
   while (t != NULL)
   {
+    DEBUG_printf(("parse_contents: t=%p(%s)\n", (void *)t, t->markup == MARKUP_NONE ? (char *)t->data : t->markup < MARKUP_NONE ? "--" : _htmlMarkups[t->markup]));
+
+    descend = false;
+
     switch (t->markup)
     {
       case MARKUP_B :	/* Top-level TOC */
@@ -3963,8 +3965,7 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
 
           if (htmlGetVariable(t, (uchar *)"_HD_OMIT_TOC") == NULL)
 	  {
-            render_contents(t, left, right, bottom, top, y, page,
-	                    *heading, chap);
+            render_contents(t, left, right, bottom, top, y, page, *heading, chap);
 
            /*
 	    * Update current headings for header/footer strings in TOC.
@@ -3997,10 +3998,6 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
             */
 
             (*heading) ++;
-
-            if (t->last_child->markup == MARKUP_UL)
-              parse_contents(t->last_child, left, right, bottom, top, y,
-	                     page, heading, chap);
           }
 	  else if (t->next != NULL && t->next->markup == MARKUP_UL)
 	  {
@@ -4013,16 +4010,17 @@ parse_contents(tree_t *t,		/* I - Tree to parse */
 	    (*heading) += count_headings(t->child) + 1;
 	  }
 	  else
+	  {
 	    (*heading) ++;
+          }
           break;
 
       default :
-          parse_contents(t->child, left, right, bottom, top, y, page, heading,
-	                 chap);
+          descend = true;
           break;
     }
 
-    t = t->next;
+    t = htmlWalkNext(NULL, t, descend);
   }
 }
 
@@ -4044,7 +4042,9 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	  int    *needspace)	/* I - Need whitespace before this element */
 {
   int		i;		/* Looping var */
-  tree_t	*para,		/* Phoney paragraph tree entry */
+  tree_t	*doc = t->parent,
+				/* Top of current document tree */
+		*para,		/* Phoney paragraph tree entry */
 		*temp;		/* Paragraph entry */
   var_t		*var;		/* Variable entry */
   uchar		*name;		/* ID name */
@@ -4052,12 +4052,22 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
   float		width,		/* Width of horizontal rule */
 		height,		/* Height of rule */
 		rgb[3];		/* RGB color of rule */
+  bool		descend;	/* Descend into children when walking to the next node? */
+  static int	levels = 0;	/* Number of levels of nested elements */
 
 
-  DEBUG_printf(("parse_doc(t=%p, left=%.1f, right=%.1f, bottom=%.1f, top=%.1f, x=%.1f, y=%.1f, page=%d, cpara=%p, needspace=%d\n",
-                (void *)t, *left, *right, *bottom, *top, *x, *y, *page, (void *)cpara,
+  DEBUG_printf(("parse_doc(t=%p(%s), left=%.1f, right=%.1f, bottom=%.1f, top=%.1f, x=%.1f, y=%.1f, page=%d, cpara=%p, needspace=%d\n",
+                (void *)t, t->markup <= MARKUP_NONE ? "--" : _htmlMarkups[t->markup], *left, *right, *bottom, *top, *x, *y, *page, (void *)cpara,
 	        *needspace));
-  DEBUG_printf(("    title_page = %d, chapter = %d\n", title_page, chapter));
+  DEBUG_printf(("parse_doc: title_page = %d, chapter = %d\n", title_page, chapter));
+
+  if (levels >= MAX_INCLUDES)
+  {
+    progress_error(HD_ERROR_NESTING_ERROR, "Too many levels of nesting (%d).", levels);
+    return;
+  }
+
+  levels ++;
 
   if (cpara == NULL)
     para = htmlNewTree(NULL, MARKUP_P, NULL);
@@ -4066,6 +4076,8 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 
   while (t != NULL)
   {
+    DEBUG_printf(("parse_doc: t=%p(%s)\n", (void *)t, t->markup == MARKUP_NONE ? (char *)t->data : t->markup < MARKUP_NONE ? "--" : _htmlMarkups[t->markup]));
+
     if (t->markup == MARKUP_FILE)
       current_url = htmlGetVariable(t, (uchar *)"_HD_URL");
 
@@ -4181,11 +4193,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
         parse_comment(t, left, right, bottom, top, x, y, page, para,
 	              *needspace);
 
-      if (t->child != NULL)
-        parse_doc(t->child, left, right, bottom, top, x, y, page, para,
-	          needspace);
-
-      t = t->next;
+      t = htmlWalkNext(doc, t);
       continue;
     }
 
@@ -4213,6 +4221,8 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
     }
 
     // Process the markup...
+    descend = false;
+
     switch (t->markup)
     {
       case MARKUP_IMG :
@@ -4313,8 +4323,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
           *left  += 36;
 	  *right -= 36;
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL,
-	            needspace);
+          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL, needspace);
 
           *left  -= 36;
 	  *right += 36;
@@ -4333,8 +4342,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
             *needspace = 1;
           }
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL,
-	            needspace);
+          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL, needspace);
 
           *x         = *left;
           *needspace = 1;
@@ -4350,8 +4358,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	    *needspace = 1;
           }
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL,
-	            needspace);
+          parse_paragraph(t, *left, *right, *bottom, *top, x, y, page, *needspace);
 
           *x         = *left;
           *needspace = 1;
@@ -4365,15 +4372,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
             para->child = para->last_child = NULL;
           }
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL,
-	            needspace);
-
-          if (para->child != NULL)
-          {
-            parse_paragraph(para, *left, *right, *bottom, *top, x, y, page, *needspace);
-            htmlDeleteTree(para->child);
-            para->child = para->last_child = NULL;
-          }
+          descend = true;
           break;
 
       case MARKUP_PRE :
@@ -4415,8 +4414,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	  *left += 36.0f;
           *x    = *left;
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page, para,
-	            needspace);
+          parse_doc(t->child, left, right, bottom, top, x, y, page, para, needspace);
 
           *left -= 36.0f;
 
@@ -4455,8 +4453,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	  *left -= 36.0f;
           *x    = *left;
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page,
-	            NULL, needspace);
+          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL, needspace);
 
 	  *left      += 36.0f;
           *x         = *left;
@@ -4473,8 +4470,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	    *needspace = 0;
           }
 
-          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL,
-	            needspace);
+          parse_doc(t->child, left, right, bottom, top, x, y, page, NULL, needspace);
 
           *x         = *left;
           *needspace = 0;
@@ -4560,8 +4556,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 
       case MARKUP_COMMENT :
           // Check comments for commands...
-          parse_comment(t, left, right, bottom, top, x, y, page, para,
-	                *needspace);
+          parse_comment(t, left, right, bottom, top, x, y, page, para, *needspace);
           break;
 
       case MARKUP_HEAD : // Ignore document HEAD section
@@ -4613,9 +4608,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 	  }
 
       default :
-	  if (t->child != NULL)
-            parse_doc(t->child, left, right, bottom, top, x, y, page, para,
-	              needspace);
+          descend = true;
           break;
     }
 
@@ -4644,7 +4637,7 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
     }
 
     // Move to the next node...
-    t = t->next;
+    t = htmlWalkNext(doc, t, descend);
   }
 
   if (para->child != NULL && cpara != para)
@@ -4657,6 +4650,8 @@ parse_doc(tree_t *t,		/* I - Tree to parse */
 
   if (cpara != para)
     htmlDeleteTree(para);
+
+  levels --;
 
   DEBUG_printf(("LEAVING parse_doc(), x = %.1f, y = %.1f, page = %d\n",
                 *x, *y, *page));
@@ -8704,6 +8699,7 @@ parse_comment(tree_t *t,	/* I - Tree to parse */
 static void
 find_background(tree_t *t)	/* I - Document to search */
 {
+  tree_t	*top = t;	/* Top of document */
   uchar		*var;		/* BGCOLOR/BACKGROUND variable */
 
 
@@ -8740,10 +8736,7 @@ find_background(tree_t *t)	/* I - Document to search */
         get_color(var, background_color, 0);
     }
 
-    if (t->child != NULL)
-      find_background(t->child);
-
-    t = t->next;
+    t = htmlWalkNext(top, t);
   }
 }
 
@@ -9698,7 +9691,9 @@ get_table_size(tree_t *t,		// I - Table
 static tree_t *			/* O - Flattened markup tree */
 flatten_tree(tree_t *t)		/* I - Markup tree to flatten */
 {
-  tree_t	*temp,		/* New tree node */
+  tree_t	*doc = t ? t->parent : NULL,
+				/* Top node of paragraph */
+		*temp,		/* New tree node */
 		*parent,	/* Parent node (for file info) */
 		*flat;		/* Flattened tree */
 
@@ -9796,23 +9791,13 @@ flatten_tree(tree_t *t)		/* I - Markup tree to flatten */
           break;
     }
 
-    if (t->child != NULL && t->markup != MARKUP_UNKNOWN)
-    {
-      temp = flatten_tree(t->child);
-
-      if (temp != NULL)
-        temp->prev = flat;
-      if (flat != NULL)
-        flat->next = temp;
-      else
-        flat = temp;
-    }
-
     if (flat != NULL)
+    {
       while (flat->next != NULL)
         flat = flat->next;
+    }
 
-    t = t->next;
+    t = htmlWalkNext(doc, t, t->child != NULL && t->markup != MARKUP_UNKNOWN);
   }
 
   if (flat == NULL)
