@@ -253,16 +253,6 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
              FILE       *fp,		// I - File pointer
 	     const char *base)		// I - Base directory for file
 {
-  DEBUG_printf(("htmlReadFile(parent=%p, fp=%p, base=\"%s\")\n",
-                (void *)parent, (void *)fp, base ? base : "(null)"));
-  return htmlReadFile2(parent, fp, base);
-}
-
-tree_t *				// O - Pointer to top of file tree
-htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
-             FILE       *fp,		// I - File pointer
-	     const char *base)		// I - Base directory for file
-{
   int		depth;			// Current depth in tree
   int		ch;			// Character from file
   uchar		*ptr,			// Pointer in string
@@ -287,7 +277,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
   static int	have_whitespace = 0;	// Non-zero if there was leading whitespace
 
 
-  DEBUG_printf(("htmlReadFile2(parent=%p, fp=%p, base=\"%s\")\n",
+  DEBUG_printf(("htmlReadFile(parent=%p, fp=%p, base=\"%s\")\n",
                 (void *)parent, (void *)fp, base ? base : "(null)"));
 
   if (_htmlCurrentLevel >= MAX_INCLUDES)
@@ -1048,7 +1038,7 @@ htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
 	      strlcpy(newbase, file_directory((char *)filename), sizeof(newbase));
 
               _htmlCurrentFile = (char *)filename;
-              htmlReadFile2(t, embed, newbase);
+              htmlReadFile(t, embed, newbase);
               fclose(embed);
 	      _htmlCurrentFile = save_name;
             }
@@ -3821,4 +3811,12 @@ utf8_getc(int  ch,                      // I - Initial character
     progress_error(HD_ERROR_READ_ERROR, "Bad UTF-8 character sequence %02X.", ch);
 
   return (0);
+}
+
+tree_t *				// O - Pointer to top of file tree
+htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
+             FILE       *fp,		// I - File pointer
+	     const char *base)		// I - Base directory for file
+{
+  return htmlReadFile(parent, fp, base);
 }
