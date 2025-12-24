@@ -3812,11 +3812,3 @@ utf8_getc(int  ch,                      // I - Initial character
 
   return (0);
 }
-
-tree_t *				// O - Pointer to top of file tree
-htmlReadFile2(tree_t     *parent,	// I - Parent tree entry
-             FILE       *fp,		// I - File pointer
-	     const char *base)		// I - Base directory for file
-{
-  return htmlReadFile(parent, fp, base);
-}

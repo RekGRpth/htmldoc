@@ -293,7 +293,6 @@ extern int		_htmlStandardFonts[TYPE_MAX];
  */
 
 extern tree_t	*htmlReadFile(tree_t *parent, FILE *fp, const char *base);
-extern tree_t	*htmlReadFile2(tree_t *parent, FILE *fp, const char *base);
 extern int	htmlWriteFile(tree_t *parent, FILE *fp);
 
 extern tree_t	*htmlAddTree(tree_t *parent, markup_t markup, uchar *data);
