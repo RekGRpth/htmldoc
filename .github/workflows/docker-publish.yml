@@ -19,6 +19,7 @@ jobs:
         repo:
           - angie.docker
           - django.docker
+          - freenginx.docker
           - nginx.docker
           - postgres.docker
           - web2py.docker
