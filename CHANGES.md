@@ -1,6 +1,14 @@
 Changes in HTMLDOC
 ==================
 
+v1.9.24 - YYYY-MM-DD
+--------------------
+
+- Updated the maximum image dimensions for RGBA images (Issue #557)
+- Added/updated memory allocation checks (Issue #558)
+- Updated error messages for consistency.
+
+
 v1.9.23 - 2026-01-28
 --------------------
 
