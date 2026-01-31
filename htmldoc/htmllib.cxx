@@ -253,7 +253,8 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
              FILE       *fp,		// I - File pointer
 	     const char *base)		// I - Base directory for file
 {
-  int		depth;			// Current depth in tree
+  bool		update_depth = true;	// Update the current depth?
+  int		depth = 0;		// Current depth in tree
   int		ch;			// Character from file
   uchar		*ptr,			// Pointer in string
 		entity[16],		// Character entity name (&#nnn; or &name;)
@@ -287,9 +288,6 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
   }
 
   _htmlCurrentLevel ++;
-
-  for (depth = 0, tree = parent; tree; tree = tree->parent)
-    depth ++;
 
 #ifdef DEBUG
   indent[0] = '\0';
@@ -421,7 +419,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	if (ch == '/')
 	{
 	  // Close markup; find matching markup...
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (temp->markup == t->markup)
             {
@@ -453,7 +451,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	else if (t->markup == MARKUP_EMBED)
 	{
 	  // Close any text blocks...
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (isblock(temp->markup) || islentry(temp->markup))
             {
@@ -468,7 +466,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (issuper(t->markup))
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
 	    if (istentry(temp->markup) || temp->markup == MARKUP_EMBED)
 	    {
@@ -479,7 +477,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (islist(t->markup))
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (isblock(temp->markup))
 	    {
@@ -494,7 +492,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (islentry(t->markup))
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (islentry(temp->markup))
             {
@@ -509,7 +507,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (isblock(t->markup))
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (isblock(temp->markup))
             {
@@ -524,7 +522,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (t->markup == MARKUP_THEAD || t->markup == MARKUP_TBODY || t->markup == MARKUP_TFOOT)
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
 	    if (temp->markup == MARKUP_TABLE || temp->markup == MARKUP_EMBED)
 	    {
@@ -535,7 +533,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (t->markup == MARKUP_TR)
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (temp->markup == MARKUP_TR)
             {
@@ -550,7 +548,7 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	}
 	else if (istentry(t->markup))
 	{
-          for (temp = parent, depth --; temp != NULL; temp = temp->parent, depth --)
+          for (temp = parent; temp != NULL; temp = temp->parent)
           {
             if (istentry(temp->markup))
             {
@@ -583,6 +581,8 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	if (temp != NULL)
 	{
           DEBUG_printf(("%s>>>> Auto-ascend <<<\n", indent));
+
+	  update_depth = true;
 
           if (ch != '/' &&
 	      temp->markup != MARKUP_BODY &&
@@ -619,7 +619,6 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	  // the root node created by the caller...
           if (temp->parent)
 	  {
-	    depth --;
 	    parent = temp->parent;
             prev   = parent->last_child;
 	  }
@@ -665,7 +664,6 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 	      t->underline     = parent->underline;
 	      t->strikethrough = parent->strikethrough;
 	    }
-
           }
 	}
 	else if (ch == '/')
@@ -1498,6 +1496,15 @@ htmlReadFile(tree_t     *parent,	// I - Parent tree entry
 
           descend = 1;
           break;
+    }
+
+    if (update_depth)
+    {
+      // Re-compute the depth...
+      update_depth = false;
+
+      for (depth = 0, temp = t; temp; temp = temp->parent)
+        depth ++;
     }
 
     if (descend)
