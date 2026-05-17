@@ -15,7 +15,9 @@
 #define _HTMLDOC_CXX_
 #include "htmldoc.h"
 #include "markdown.h"
-#include <cups/http.h>
+#ifdef HAVE_LIBCUPS
+#  include <cups/http.h>
+#endif // HAVE_LIBCUPS
 #include <ctype.h>
 #include <fcntl.h>
 
