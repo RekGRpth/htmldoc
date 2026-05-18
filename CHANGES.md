@@ -15,6 +15,7 @@ v1.9.24 - YYYY-MM-DD
 - Fixed a regression with rendering links in PDF documents (Issue #561)
 - Fixed a use-after-free bug when loading an unsupported image format
   (Issue #562)
+- Fixed a crash bug when generating EPub content with `--webpage` (Issue #567)
 - Fixed an out-of-bounds read bug in the roman numeral formatting code
   (Issue #568)
 
