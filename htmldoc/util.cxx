@@ -1,7 +1,7 @@
 //
 // Utility functions for HTMLDOC, a HTML document processing program.
 //
-// Copyright © 2011-2024 by Michael R Sweet.
+// Copyright © 2011-2026 by Michael R Sweet.
 // Copyright © 1997-2010 by Easy Software Products.  All rights reserved.
 //
 // This program is free software.  Distribution and use rights are outlined in
@@ -69,7 +69,7 @@ format_number(int  n,			// I - Number
 	break;
 
     case 'a' :
-        if (n > (26 * 26))
+        if (n < 1 || n > (26 * 26))
           n = (n % (26 * 26)) + 1;
 
         if (n > 26)
@@ -79,7 +79,7 @@ format_number(int  n,			// I - Number
         break;
 
     case 'A' :
-        if (n > (26 * 26))
+        if (n < 1 || n > (26 * 26))
           n = (n % (26 * 26)) + 1;
 
         if (n > 26)
@@ -93,14 +93,14 @@ format_number(int  n,			// I - Number
         break;
 
     case 'i' :
-        if (n >= 3000)
+        if (n < 1 || n >= 3000)
           n = ((n - 3000) % 2999) + 1;
 
 	snprintf(buffer, sizeof(buffer), "%s%s%s", hundreds[n / 100], tens[(n / 10) % 10], ones[n % 10]);
         break;
 
     case 'I' :
-        if (n >= 3000)
+        if (n < 1 || n >= 3000)
           n = ((n - 3000) % 2999) + 1;
 
 	snprintf(buffer, sizeof(buffer), "%s%s%s", HUNDREDS[n / 100], TENS[(n / 10) % 10], ONES[n % 10]);
