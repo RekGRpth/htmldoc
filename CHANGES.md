@@ -15,9 +15,12 @@ v1.9.24 - YYYY-MM-DD
 - Fixed a regression with rendering links in PDF documents (Issue #561)
 - Fixed a use-after-free bug when loading an unsupported image format
   (Issue #562)
+- Fixed builds when libcups is unavailable or disabled (Issue #565)
 - Fixed a crash bug when generating EPub content with `--webpage` (Issue #567)
 - Fixed an out-of-bounds read bug in the roman numeral formatting code
   (Issue #568)
+- Fixed an issue with proxy support (Issue #570)
+- Fixed an issue with `--no-localfiles` (Issue #571)
 
 
 v1.9.23 - 2026-01-28

@@ -664,7 +664,7 @@ file_find(const char *path,		/* I - Path "dir;dir;dir" */
 
   DEBUG_printf(("file_find(path=\"%s\", s=\"%s\")\n", path ? path : "(null)", s));
 
-#ifdef HAVE_CUPS
+#ifdef HAVE_LIBCUPS
  /*
   * See if this is a cached remote file...
   */
@@ -1025,8 +1025,9 @@ file_proxy(const char *url)		/* I - URL of proxy server */
                     username, sizeof(username), hostname, sizeof(hostname),
 		    &port, resource, sizeof(resource));
 
-    if (strcmp(scheme, "http") == 0)
+    if (!strcmp(scheme, "http") || !strcmp(scheme, "https"))
     {
+      strlcpy(proxy_scheme, scheme, sizeof(proxy_scheme));
       strlcpy(proxy_host, hostname, sizeof(proxy_host));
       proxy_port = port;
     }
