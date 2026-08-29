@@ -1,7 +1,7 @@
 Changes in HTMLDOC
 ==================
 
-v1.9.24 - 2026-08-21
+v1.9.24 - 2026-08-29
 --------------------
 
 - Updated the maximum image dimensions for RGBA images (Issue #557)
