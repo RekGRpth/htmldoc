@@ -752,6 +752,9 @@ file_find(const char *path,		/* I - Path "dir;dir;dir" */
   {
     if (strcmp(s, web_cache[i].name) == 0)
     {
+      if (!file_notify(HD_FILE_CACHE, web_cache[i].url ? web_cache[i].url : s, web_cache[i].name, 0))
+        return (NULL);
+
       DEBUG_printf(("file_find: Returning cache file \"%s\"!\n", s));
       return (web_cache[i].name);
     }
