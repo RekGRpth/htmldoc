@@ -98,6 +98,10 @@ char	referer_url[256] = "";		/* HTTP referer, if any */
 
 int	no_local = 0;			/* Non-zero to disable local files */
 
+static hd_file_cb_t	file_cb = NULL;	/* File/URL access callback */
+static void		*file_cb_data = NULL;
+					/* Callback data */
+
 size_t	web_files = 0,			/* Number of temporary files */
 	web_alloc = 0;			/* Number of allocated files */
 cache_t	*web_cache = NULL;		/* Cache array */
@@ -134,6 +138,19 @@ file_basename(const char *s)	/* I - Filename or URL */
     return (basename + 1);
   else
     return (s);
+}
+
+
+/*
+ * 'file_callback()' - Set the callback for file and URL accesses.
+ */
+
+void
+file_callback(hd_file_cb_t cb,		/* I - Callback function or NULL */
+              void         *data)	/* I - Callback data */
+{
+  file_cb      = cb;
+  file_cb_data = data;
 }
 
 
@@ -377,6 +394,29 @@ file_extension(const char *s)		/* I - Filename or URL */
 
 
 /*
+ * 'file_notify()' - Tell the callback about a file or URL access.
+ */
+
+static int				/* O - 1 to allow, 0 to deny */
+file_notify(
+    hd_file_event_t event,		/* I - Event */
+    const char      *url,		/* I - File or URL */
+    const char      *localname,		/* I - Local file or NULL */
+    int             status)		/* I - HTTP status or 0 */
+{
+  if (!file_cb)
+    return (1);
+
+  if ((*file_cb)(file_cb_data, event, url, localname, status))
+    return (1);
+
+  DEBUG_printf(("file_notify: Access to \"%s\" denied by callback.\n", url));
+
+  return (0);
+}
+
+
+/*
  * 'file_find_check()' - Check to see if the specified file or URL exists...
  */
 
@@ -397,7 +437,8 @@ file_find_check(const char *filename)	/* I - File or URL */
   const char	*connhost;		/* Host to connect to */
   int		connport;		/* Port to connect to */
   char		connpath[1024],		/* Path for GET */
-		connauth[256];		/* Auth string */
+		connauth[256],		/* Auth string */
+		requrl[1024];		/* URL for this request */
   http_status_t	status;			/* Status of request... */
   FILE		*fp;			/* Web file */
   ssize_t	bytes,			/* Bytes read */
@@ -426,6 +467,13 @@ file_find_check(const char *filename)	/* I - File or URL */
       return (NULL);
 
    /*
+    * Ask the callback whether we can access this file...
+    */
+
+    if (!file_notify(HD_FILE_LOCAL, filename, filename, 0))
+      return (NULL);
+
+   /*
     * If the filename exists, return the filename...
     */
 
@@ -450,10 +498,16 @@ file_find_check(const char *filename)	/* I - File or URL */
     {
       if (web_cache[i].url && strcmp(web_cache[i].url, filename) == 0)
       {
+        if (!file_notify(HD_FILE_CACHE, filename, web_cache[i].name, 0))
+          return (NULL);
+
         DEBUG_printf(("file_find_check: Returning \"%s\" for \"%s\".\n", web_cache[i].name, filename));
         return (web_cache[i].name);
       }
     }
+
+    if (!file_notify(HD_FILE_DATA, filename, NULL, 0))
+      return (NULL);
 
     if ((data = strstr(filename, ";base64,")) != NULL)
     {
@@ -490,6 +544,9 @@ file_find_check(const char *filename)	/* I - File or URL */
     {
       if (web_cache[i].url && strcmp(web_cache[i].url, filename) == 0)
       {
+        if (!file_notify(HD_FILE_CACHE, filename, web_cache[i].name, 0))
+          return (NULL);
+
         DEBUG_printf(("file_find_check: Returning \"%s\" for \"%s\".\n", web_cache[i].name, filename));
         return (web_cache[i].name);
       }
@@ -501,6 +558,15 @@ file_find_check(const char *filename)	/* I - File or URL */
 
     for (status = HTTP_STATUS_ERROR, retry = 0; status != HTTP_STATUS_OK && retry < 5; retry ++)
     {
+      // Ask the callback whether we can make this request...
+      httpAssembleURI(HTTP_URI_CODING_ALL, requrl, sizeof(requrl), scheme, NULL, hostname, port, resource);
+
+      if (!file_notify(HD_FILE_REQUEST, requrl, NULL, 0))
+      {
+        progress_hide();
+        return (NULL);
+      }
+
       if (proxy_port)
       {
         // Send request to proxy host...
@@ -583,6 +649,14 @@ file_find_check(const char *filename)	/* I - File or URL */
         char	newresource[256];	// New resource
 
         progress_show("Redirecting to %s...", newurl);
+
+        if (!file_notify(HD_FILE_REDIRECT, newurl, NULL, (int)status))
+        {
+          progress_hide();
+          httpFlush(http);
+          return (NULL);
+        }
+
 	httpSeparateURI(HTTP_URI_CODING_ALL, newurl, scheme, sizeof(scheme), username, sizeof(username), hostname, sizeof(hostname), &port, newresource, sizeof(newresource));
 
         // Don't use new resource path if it is empty...
@@ -596,6 +670,8 @@ file_find_check(const char *filename)	/* I - File or URL */
 
     if (status != HTTP_STATUS_OK)
     {
+      file_notify(HD_FILE_RESULT, filename, NULL, (int)status);
+
       progress_hide();
       progress_error((HDerror)status, "%s (%s)", httpStatusString(status), filename);
       httpFlush(http);
@@ -626,6 +702,9 @@ file_find_check(const char *filename)	/* I - File or URL */
     progress_hide();
 
     fclose(fp);
+
+    if (!file_notify(HD_FILE_RESULT, filename, tempname, (int)status))
+      return (NULL);
 
     web_cache[web_files - 1].url = strdup(filename);
 
