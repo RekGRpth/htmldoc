@@ -3370,6 +3370,10 @@ fix_filename(char *filename,		// I - Original filename
   if (filename == NULL)
     return (NULL);
 
+  // "data:" URIs are not relative to the base directory...
+  if (!strncmp(filename, "data:", 5))
+    return (file_find(Path, filename));
+
 #ifdef DEBUG // to silence Clang static analyzer, totally unnecessary
   memset(temp, 0, sizeof(temp));
 #endif // DEBUG
