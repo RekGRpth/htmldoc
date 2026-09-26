@@ -211,6 +211,13 @@ extern "C" {
 typedef int	(*compare_func_t)(const void *, const void *);
 }
 
+typedef struct				// Growable variable value
+{
+  uchar		*data;			// Value string
+  size_t	length,			// Length of value
+		size;			// Allocated size of value
+} valbuf_t;
+
 static int	write_file(tree_t *t, FILE *fp, int col);
 static int	compare_variables(var_t *v0, var_t *v1);
 static int	compare_markups(uchar **m0, uchar **m1);
@@ -223,6 +230,8 @@ static int	compute_color(tree_t *t, uchar *color);
 static int	get_alignment(tree_t *t);
 static const char *fix_filename(char *path, char *base);
 static int      utf8_getc(int ch, FILE *fp);
+static void	valbuf_addc(valbuf_t *vb, int ch);
+static void	valbuf_adds(valbuf_t *vb, const uchar *s);
 
 #define issuper(x)	((x) == MARKUP_CENTER || (x) == MARKUP_DIV ||\
 			 (x) == MARKUP_BLOCKQUOTE)
@@ -2846,11 +2855,12 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	       long   *linenum)		// I - Current line number
 {
   uchar	name[1024],			// Name of variable
-	value[10240],			// Value of variable
 	*ptr,				// Temporary pointer
 	entity[16],			// Character entity name
 	*eptr;				// Pointer into name
-  int	ch;				// Character from file
+  valbuf_t value = { NULL, 0, 0 };	// Value of variable
+  int	ch,				// Character from file
+	status;				// Status of htmlSetVariable()
 
 
   ptr = name;
@@ -2894,8 +2904,7 @@ parse_variable(tree_t *t,		// I - Current tree entry
     case EOF :
         return (-1);
     case '=' :
-        ptr = value;
-        ch  = getc(fp);
+        ch = getc(fp);
 
         while (isspace(ch) || ch == '\r')
           ch = getc(fp);
@@ -2931,27 +2940,21 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	      {
 		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = '&';
-                strlcpy((char *)ptr, (char *)entity, sizeof(value) - (size_t)(ptr - value));
-		ptr += strlen((char *)ptr);
+		valbuf_addc(&value, '&');
+		valbuf_adds(&value, entity);
 	      }
 	      else if ((ch = iso8859(entity)) == 0)
 	      {
 		progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = '&';
-                strlcpy((char *)ptr, (char *)entity, sizeof(value) - (size_t)(ptr - value));
-		ptr += strlen((char *)ptr);
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = ';';
+		valbuf_addc(&value, '&');
+		valbuf_adds(&value, entity);
+		valbuf_addc(&value, ';');
 	      }
-	      else if (ptr < (value + sizeof(value) - 1))
-	        *ptr++ = (uchar)ch;
+	      else
+	        valbuf_addc(&value, ch);
 	    }
-            else if (ptr < (value + sizeof(value) - 1) &&
-	             ch != '\n' && ch != '\r')
+            else if (ch != '\n' && ch != '\r')
             {
               if ((ch & 0x80) && _htmlUTF8)
               {
@@ -2960,18 +2963,15 @@ parse_variable(tree_t *t,		// I - Current tree entry
               }
 
               if (ch)
-                *ptr++ = (uchar)ch;
+                valbuf_addc(&value, ch);
             }
 	    else if (ch == '\n')
 	    {
-	      if (ptr < (value + sizeof(value) - 1))
-	        *ptr++ = ' ';
+	      valbuf_addc(&value, ' ');
 
 	      (*linenum) ++;
 	    }
 	  }
-
-          *ptr = '\0';
         }
         else if (ch == '\"')
         {
@@ -3001,27 +3001,21 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	      {
 		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = '&';
-                strlcpy((char *)ptr, (char *)entity, sizeof(value) - (size_t)(ptr - value));
-		ptr += strlen((char *)ptr);
+		valbuf_addc(&value, '&');
+		valbuf_adds(&value, entity);
 	      }
 	      else if ((ch = iso8859(entity)) == 0)
 	      {
 		progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = '&';
-                strlcpy((char *)ptr, (char *)entity, sizeof(value) - (size_t)(ptr - value));
-		ptr += strlen((char *)ptr);
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = ';';
+		valbuf_addc(&value, '&');
+		valbuf_adds(&value, entity);
+		valbuf_addc(&value, ';');
 	      }
-	      else if (ptr < (value + sizeof(value) - 1))
-	        *ptr++ = (uchar)ch;
+	      else
+	        valbuf_addc(&value, ch);
 	    }
-            else if (ptr < (value + sizeof(value) - 1) &&
-	             ch != '\n' && ch != '\r')
+            else if (ch != '\n' && ch != '\r')
             {
               if ((ch & 0x80) && _htmlUTF8)
               {
@@ -3030,22 +3024,19 @@ parse_variable(tree_t *t,		// I - Current tree entry
               }
 
               if (ch)
-                *ptr++ = (uchar)ch;
+                valbuf_addc(&value, ch);
             }
 	    else if (ch == '\n')
 	    {
-	      if (ptr < (value + sizeof(value) - 1))
-	        *ptr++ = ' ';
+	      valbuf_addc(&value, ' ');
 
 	      (*linenum) ++;
 	    }
 	  }
-
-          *ptr = '\0';
         }
         else
         {
-          *ptr++ = (uchar)ch;
+          valbuf_addc(&value, ch);
           while ((ch = getc(fp)) != EOF)
 	  {
             if (isspace(ch) || ch == '>' || ch == '\r')
@@ -3072,26 +3063,21 @@ parse_variable(tree_t *t,		// I - Current tree entry
 	      {
 		progress_error(HD_ERROR_HTML_ERROR, "Unquoted & on line %ld of %s.", *linenum, _htmlCurrentFile);
 
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = '&';
-                strlcpy((char *)ptr, (char *)entity, sizeof(value) - (size_t)(ptr - value));
-		ptr += strlen((char *)ptr);
+		valbuf_addc(&value, '&');
+		valbuf_adds(&value, entity);
 	      }
 	      else if ((ch = iso8859(entity)) == 0)
 	      {
 		progress_error(HD_ERROR_HTML_ERROR, "Unknown character entity \"&%s;\" on line %ld of %s.", entity, *linenum, _htmlCurrentFile);
 
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = '&';
-                strlcpy((char *)ptr, (char *)entity, sizeof(value) - (size_t)(ptr - value));
-		ptr += strlen((char *)ptr);
-        	if (ptr < (value + sizeof(value) - 1))
-		  *ptr++ = ';';
+		valbuf_addc(&value, '&');
+		valbuf_adds(&value, entity);
+		valbuf_addc(&value, ';');
 	      }
-	      else if (ptr < (value + sizeof(value) - 1))
-	        *ptr++ = (uchar)ch;
+	      else
+	        valbuf_addc(&value, ch);
 	    }
-            else if (ptr < (value + sizeof(value) - 1))
+            else
             {
               if ((ch & 0x80) && _htmlUTF8)
               {
@@ -3100,19 +3086,20 @@ parse_variable(tree_t *t,		// I - Current tree entry
               }
 
               if (ch)
-                *ptr++ = (uchar)ch;
+                valbuf_addc(&value, ch);
             }
 	  }
 
 	  if (ch == '\n')
 	    (*linenum) ++;
-
-          *ptr = '\0';
           if (ch == '>')
             ungetc(ch, fp);
         }
 
-        return (htmlSetVariable(t, name, value));
+        status = htmlSetVariable(t, name, value.data ? value.data : (uchar *)"");
+        free(value.data);
+
+        return (status);
   }
 }
 
@@ -3807,4 +3794,44 @@ utf8_getc(int  ch,                      // I - Initial character
     progress_error(HD_ERROR_READ_ERROR, "Bad UTF-8 character sequence %02X.", ch);
 
   return (0);
+}
+
+
+//
+// 'valbuf_addc()' - Add a character to a variable value.
+//
+
+static void
+valbuf_addc(valbuf_t *vb,		// I - Variable value
+            int      ch)		// I - Character to add
+{
+  if ((vb->length + 2) > vb->size)
+  {
+    // Grow the value as needed...
+    size_t	size = vb->size ? 2 * vb->size : 256;
+					// New size
+    uchar	*data;			// New value string
+
+    if ((data = (uchar *)realloc(vb->data, size)) == NULL)
+      return;
+
+    vb->data = data;
+    vb->size = size;
+  }
+
+  vb->data[vb->length ++] = (uchar)ch;
+  vb->data[vb->length]    = '\0';
+}
+
+
+//
+// 'valbuf_adds()' - Add a string to a variable value.
+//
+
+static void
+valbuf_adds(valbuf_t    *vb,		// I - Variable value
+            const uchar *s)		// I - String to add
+{
+  while (*s)
+    valbuf_addc(vb, *s++);
 }

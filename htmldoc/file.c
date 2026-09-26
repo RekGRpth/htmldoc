@@ -492,7 +492,7 @@ file_find_check(const char *filename)	/* I - File or URL */
 
     const char	*data;			/* Pointer to data */
     size_t	len;			/* Number of bytes */
-    char	buffer[8192];		/* Data buffer */
+    char	*buffer;		/* Data buffer */
 
     for (i = 0; i < (int)web_files; i ++)
     {
@@ -511,11 +511,26 @@ file_find_check(const char *filename)	/* I - File or URL */
 
     if ((data = strstr(filename, ";base64,")) != NULL)
     {
-      len = sizeof(buffer);
-      httpDecode64(buffer, &len, data + 8, /*end*/NULL);
+     /*
+      * Allocate enough memory for the decoded data plus the nul that
+      * httpDecode64() adds...
+      */
+
+      data += 8;
+      len  = (strlen(data) / 4 + 1) * 3 + 1;
+
+      if ((buffer = (char *)malloc(len)) == NULL)
+      {
+	progress_hide();
+	progress_error(HD_ERROR_OUT_OF_MEMORY, "Unable to allocate %lu bytes for data URI.", (unsigned long)len);
+	return (NULL);
+      }
+
+      httpDecode64(buffer, &len, data, /*end*/NULL);
 
       if ((fp = file_temp(tempname, sizeof(tempname))) == NULL)
       {
+	free(buffer);
 	progress_hide();
 	progress_error(HD_ERROR_WRITE_ERROR, "Unable to create temporary file '%s': %s", tempname, strerror(errno));
 	return (NULL);
@@ -523,6 +538,7 @@ file_find_check(const char *filename)	/* I - File or URL */
 
       fwrite(buffer, 1, len, fp);
       fclose(fp);
+      free(buffer);
 
       progress_hide();
 
