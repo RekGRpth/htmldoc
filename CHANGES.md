@@ -1,6 +1,14 @@
 Changes in HTMLDOC
 ==================
 
+v1.9.25 - YYYY-MM-DD
+--------------------
+
+- Updated the maximum length of "data:" URLs to 32k (Issue #573)
+- Fixed an issue in the source code that prevented GCC from successfully
+  building with LTO optimization settings (Issue #576)
+
+
 v1.9.24 - 2026-08-29
 --------------------
 

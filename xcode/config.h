@@ -12,7 +12,7 @@
  * What is the version number and year for this software?
  */
 
-#define SVERSION "1.9.24"
+#define SVERSION "1.9.25"
 #define SYEAR "2026"
 
 
@@ -20,6 +20,7 @@
  * Limits for input processing...
  */
 
+#define MAX_DATAURL	32768	/* Maximum size of data URLs */
 #define MAX_DEPTH	1000	/* Maximum depth of document tree */
 #define MAX_INCLUDES	32	/* Maximum levels of included/embedded files */
 
